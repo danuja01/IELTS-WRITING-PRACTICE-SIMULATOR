@@ -110,9 +110,13 @@
     const mins = question.task_type === "task1" ? 20 : 40;
     examLimitMs = mins * 60 * 1000;
     timerMain.textContent = formatClock(examLimitMs);
+    const imgHtml = question.has_image
+      ? `<figure class="task1-figure"><img src="${escapeHtml(question.image_url)}" alt="Task 1 chart or diagram" class="task1-chart"></figure>`
+      : "";
     questionPane.innerHTML = `
       <span class="task-badge">${escapeHtml(question.task_type)} · ${mins} min exam time</span>
       <h2 style="margin:0 0 0.75rem;font-size:1.05rem">${escapeHtml(question.title)}</h2>
+      ${imgHtml}
       <pre>${escapeHtml(question.prompt)}</pre>`;
   }
 

@@ -339,6 +339,34 @@ button:disabled {
   margin: 0;
 }
 
+.task1-image-block {
+  margin-bottom: 0.75rem;
+}
+
+.task1-image-block input[type="file"] {
+  margin-bottom: 0.35rem;
+}
+
+.image-preview {
+  display: block;
+  max-width: 100%;
+  max-height: 180px;
+  margin-top: 0.5rem;
+  border: 1px solid var(--border);
+}
+
+.task1-figure {
+  margin: 0 0 1rem;
+}
+
+.task1-chart {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  background: #fff;
+}
+
 .write-pane {
   background: #fafafa;
 }

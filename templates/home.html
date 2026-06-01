@@ -23,6 +23,12 @@
           <option value="task1">Task 1 (20 min)</option>
           <option value="task2" selected>Task 2 (40 min)</option>
         </select>
+        <div id="task1-image-block" class="task1-image-block" hidden>
+          <label for="q-image">Chart / diagram image (Task 1)</label>
+          <input type="file" id="q-image" accept="image/png,image/jpeg,image/webp,image/gif">
+          <p class="q-meta">Upload the illustration (chart, graph, map, etc.) — max 8 MB</p>
+          <img id="q-image-preview" class="image-preview" alt="" hidden>
+        </div>
         <label for="q-prompt">Question / prompt</label>
         <textarea id="q-prompt" rows="6" placeholder="Paste the IELTS question here..." required></textarea>
         <button type="submit">Save question</button>

@@ -4,21 +4,29 @@ import sqlite3
 from contextlib import closing
 from datetime import datetime, timezone
 from functools import wraps
+from pathlib import Path
 
 from flask import (
     Flask,
+    abort,
     g,
     jsonify,
     redirect,
     render_template,
     request,
+    send_from_directory,
     session,
     url_for,
 )
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.environ.get("IELTS_DB", os.path.join(APP_DIR, "data", "app.db"))
+DATA_DIR = os.path.dirname(DB_PATH)
+UPLOAD_DIR = os.path.join(DATA_DIR, "uploads")
+ALLOWED_IMAGE_EXT = frozenset({".png", ".jpg", ".jpeg", ".webp", ".gif"})
+MAX_IMAGE_BYTES = 8 * 1024 * 1024
 
 
 def _load_version() -> str:
@@ -89,6 +97,49 @@ def init_db():
             """
         )
         db.commit()
+        _migrate_questions_image(db)
+
+
+def _migrate_questions_image(db):
+    cols = {row[1] for row in db.execute("PRAGMA table_info(questions)").fetchall()}
+    if "image_path" not in cols:
+        db.execute("ALTER TABLE questions ADD COLUMN image_path TEXT")
+        db.commit()
+
+
+def _save_question_image(file_storage, user_id: int, question_id: int) -> str:
+    if not file_storage or not file_storage.filename:
+        return ""
+    ext = Path(secure_filename(file_storage.filename)).suffix.lower()
+    if ext not in ALLOWED_IMAGE_EXT:
+        raise ValueError("image must be PNG, JPG, WEBP, or GIF")
+    raw = file_storage.read()
+    if len(raw) > MAX_IMAGE_BYTES:
+        raise ValueError("image too large (max 8 MB)")
+    rel = f"{user_id}/{question_id}{ext}"
+    dest = os.path.join(UPLOAD_DIR, rel)
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    with open(dest, "wb") as f:
+        f.write(raw)
+    return rel
+
+
+def _delete_question_image(image_path: str | None) -> None:
+    if not image_path:
+        return
+    full = os.path.join(UPLOAD_DIR, image_path)
+    if os.path.isfile(full):
+        os.remove(full)
+
+
+def _question_json(row) -> dict:
+    d = dict(row)
+    d["has_image"] = bool(d.get("image_path"))
+    if d["has_image"]:
+        d["image_url"] = url_for("question_image", qid=d["id"])
+    else:
+        d["image_url"] = None
+    return d
 
 
 def login_required(f):
@@ -208,22 +259,31 @@ def api_logout():
 @login_required
 def list_questions():
     rows = get_db().execute(
-        """SELECT id, title, prompt, task_type, created_at
+        """SELECT id, title, prompt, task_type, image_path, created_at
            FROM questions WHERE user_id = ? ORDER BY id DESC""",
         (session["user_id"],),
     ).fetchall()
-    return jsonify([dict(r) for r in rows])
+    return jsonify([_question_json(r) for r in rows])
 
 
 @app.route("/api/questions", methods=["POST"])
 @login_required
 def create_question():
-    data = request.get_json(silent=True) or {}
-    title = (data.get("title") or "Untitled").strip()[:200]
-    prompt = (data.get("prompt") or "").strip()
-    task_type = (data.get("task_type") or "task2").strip()[:20]
+    if request.content_type and "multipart/form-data" in request.content_type:
+        title = (request.form.get("title") or "Untitled").strip()[:200]
+        prompt = (request.form.get("prompt") or "").strip()
+        task_type = (request.form.get("task_type") or "task2").strip()[:20]
+        image_file = request.files.get("image")
+    else:
+        data = request.get_json(silent=True) or {}
+        title = (data.get("title") or "Untitled").strip()[:200]
+        prompt = (data.get("prompt") or "").strip()
+        task_type = (data.get("task_type") or "task2").strip()[:20]
+        image_file = None
+
     if not prompt:
         return jsonify({"error": "prompt required"}), 400
+
     db = get_db()
     cur = db.execute(
         """INSERT INTO questions (user_id, title, prompt, task_type, created_at)
@@ -232,8 +292,25 @@ def create_question():
     )
     db.commit()
     qid = cur.lastrowid
+    image_path = ""
+
+    if task_type == "task1" and image_file and image_file.filename:
+        try:
+            image_path = _save_question_image(
+                image_file, session["user_id"], qid
+            )
+            db.execute(
+                "UPDATE questions SET image_path = ? WHERE id = ?",
+                (image_path, qid),
+            )
+            db.commit()
+        except ValueError as e:
+            db.execute("DELETE FROM questions WHERE id = ?", (qid,))
+            db.commit()
+            return jsonify({"error": str(e)}), 400
+
     row = db.execute("SELECT * FROM questions WHERE id = ?", (qid,)).fetchone()
-    return jsonify(dict(row)), 201
+    return jsonify(_question_json(row)), 201
 
 
 @app.route("/api/questions/<int:qid>", methods=["GET"])
@@ -245,13 +322,38 @@ def get_question(qid):
     ).fetchone()
     if not row:
         return jsonify({"error": "not found"}), 404
-    return jsonify(dict(row))
+    return jsonify(_question_json(row))
+
+
+@app.route("/api/questions/<int:qid>/image")
+@login_required
+def question_image(qid):
+    row = get_db().execute(
+        "SELECT image_path FROM questions WHERE id = ? AND user_id = ?",
+        (qid, session["user_id"]),
+    ).fetchone()
+    if not row or not row["image_path"]:
+        abort(404)
+    directory = UPLOAD_DIR
+    filename = row["image_path"]
+    # image_path stored as user_id/qid.ext — send_from_directory needs parent + name
+    parent = os.path.join(directory, os.path.dirname(filename))
+    name = os.path.basename(filename)
+    if not os.path.isfile(os.path.join(parent, name)):
+        abort(404)
+    return send_from_directory(parent, name)
 
 
 @app.route("/api/questions/<int:qid>", methods=["DELETE"])
 @login_required
 def delete_question(qid):
     db = get_db()
+    row = db.execute(
+        "SELECT image_path FROM questions WHERE id = ? AND user_id = ?",
+        (qid, session["user_id"]),
+    ).fetchone()
+    if row:
+        _delete_question_image(row["image_path"])
     db.execute(
         "DELETE FROM questions WHERE id = ? AND user_id = ?",
         (qid, session["user_id"]),

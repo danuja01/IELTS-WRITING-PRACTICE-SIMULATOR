@@ -3,6 +3,33 @@
   const historyEl = document.getElementById("history-list");
   const form = document.getElementById("add-question-form");
   const formMsg = document.getElementById("form-msg");
+  const taskSelect = document.getElementById("q-task");
+  const imageBlock = document.getElementById("task1-image-block");
+  const imageInput = document.getElementById("q-image");
+  const imagePreview = document.getElementById("q-image-preview");
+
+  function toggleTask1Image() {
+    const isTask1 = taskSelect.value === "task1";
+    imageBlock.hidden = !isTask1;
+    if (!isTask1) {
+      imageInput.value = "";
+      imagePreview.hidden = true;
+      imagePreview.removeAttribute("src");
+    }
+  }
+
+  taskSelect.addEventListener("change", toggleTask1Image);
+  imageInput.addEventListener("change", () => {
+    const file = imageInput.files[0];
+    if (!file) {
+      imagePreview.hidden = true;
+      imagePreview.removeAttribute("src");
+      return;
+    }
+    imagePreview.src = URL.createObjectURL(file);
+    imagePreview.hidden = false;
+  });
+  toggleTask1Image();
 
   document.getElementById("logout-btn").addEventListener("click", async () => {
     await fetch("/api/logout", { method: "POST" });
@@ -26,7 +53,7 @@
       <li>
         <div>
           <strong>${escapeHtml(q.title)}</strong>
-          <div class="q-meta">${q.task_type.toUpperCase()} · ${formatDate(q.created_at)}</div>
+          <div class="q-meta">${q.task_type.toUpperCase()}${q.has_image ? " · 📊 image" : ""} · ${formatDate(q.created_at)}</div>
         </div>
         <div class="actions">
           <a class="btn" href="/practice/${q.id}">Start</a>
@@ -36,7 +63,7 @@
       )
       .join("");
 
-    listEl.querySelectorAll(".danger-btn").forEach((btn) => {
+    listEl.querySelectorAll("button.danger").forEach((btn) => {
       btn.addEventListener("click", async () => {
         if (!confirm("Delete this question?")) return;
         await fetch(`/api/questions/${btn.dataset.id}`, { method: "DELETE" });
@@ -71,16 +98,26 @@
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     formMsg.textContent = "";
-    const body = {
-      title: document.getElementById("q-title").value.trim(),
-      task_type: document.getElementById("q-task").value,
-      prompt: document.getElementById("q-prompt").value.trim(),
-    };
-    const res = await fetch("/api/questions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    const title = document.getElementById("q-title").value.trim();
+    const task_type = taskSelect.value;
+    const prompt = document.getElementById("q-prompt").value.trim();
+    const imageFile = imageInput.files[0];
+
+    let res;
+    if (task_type === "task1" && imageFile) {
+      const fd = new FormData();
+      fd.append("title", title);
+      fd.append("task_type", task_type);
+      fd.append("prompt", prompt);
+      fd.append("image", imageFile);
+      res = await fetch("/api/questions", { method: "POST", body: fd });
+    } else {
+      res = await fetch("/api/questions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, task_type, prompt }),
+      });
+    }
     const data = await res.json();
     if (!res.ok) {
       formMsg.textContent = data.error || "Failed";
@@ -88,6 +125,7 @@
       return;
     }
     form.reset();
+    toggleTask1Image();
     formMsg.textContent = "Saved.";
     formMsg.className = "msg";
     loadQuestions();

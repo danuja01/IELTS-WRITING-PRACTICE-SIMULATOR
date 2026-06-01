@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0
+
+- Task 1: upload chart/diagram illustration image when adding a question
+- Image shown on the practice screen next to the prompt
+
 ## 1.1.0
 
 - Production server: Gunicorn in Docker (replaces Flask dev server)
