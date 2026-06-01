@@ -6,8 +6,8 @@
 
 services:
   ielts-writing:
-    # Use :1.2.0 to pin; :latest always pulls newest build from main
-    image: ghcr.io/danuja01/ielts-writing-practice-simulator:2.0.0
+    # Pin :2.0.0 or use :latest (both updated by GitHub Actions on push to main)
+    image: ghcr.io/danuja01/ielts-writing-practice-simulator:latest
     container_name: ielts-writing
     ports:
       - "5050:5050"
