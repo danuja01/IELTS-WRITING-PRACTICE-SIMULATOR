@@ -21,6 +21,8 @@
   const selWordEl = document.getElementById("sel-word-count");
   const promptToolbar = document.getElementById("prompt-toolbar");
   const promptHighlightBtn = document.getElementById("prompt-highlight-btn");
+  const chartSizeControl = document.getElementById("chart-size-control");
+  const chartSize = document.getElementById("chart-size");
 
   let question = null;
   let writingId = null;
@@ -183,7 +185,27 @@
 
   fontSize.addEventListener("input", applyEditorStyle);
   lineHeight.addEventListener("input", applyEditorStyle);
+  if (chartSize) chartSize.addEventListener("input", applyChartSize);
   applyEditorStyle();
+
+  function applyChartSize() {
+    const img = document.querySelector("#question-pane .task1-chart");
+    if (img && chartSize) {
+      img.style.width = chartSize.value + "%";
+      sessionStorage.setItem(`chart-size-${qid}`, chartSize.value);
+    }
+  }
+
+  function updateChartControl() {
+    if (!chartSizeControl || !question) return;
+    const show = question.has_image && question.task_type === "task1";
+    chartSizeControl.hidden = !show;
+    if (show && chartSize) {
+      const saved = sessionStorage.getItem(`chart-size-${qid}`);
+      if (saved) chartSize.value = saved;
+      applyChartSize();
+    }
+  }
 
   function applyEditorStyle() {
     essay.style.fontSize = fontSize.value + "px";
@@ -327,12 +349,13 @@
     questionPane.innerHTML = `
       <span class="task-badge">${escapeHtml(question.task_type)} · ${mins} min exam time</span>
       <h2 class="question-title">${escapeHtml(question.title)}</h2>
-      ${imgHtml}
       <div id="prompt-text" class="prompt-text">${promptInner}</div>
+      ${imgHtml}
       <p class="selection-hint">Select question text → click Highlight or right-click</p>`;
     plainPrompt = question.prompt || "";
     savedPromptRange = null;
     if (promptToolbar) promptToolbar.hidden = true;
+    updateChartControl();
   }
 
   async function loadQuestion() {

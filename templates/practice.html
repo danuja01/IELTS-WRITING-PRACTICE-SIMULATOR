@@ -27,6 +27,10 @@
         <label for="line-height">Line spacing</label>
         <input type="range" id="line-height" min="140" max="220" value="160" step="5">
       </div>
+      <div class="editor-controls" id="chart-size-control" hidden>
+        <label for="chart-size">Chart size</label>
+        <input type="range" id="chart-size" min="50" max="100" value="100" step="5">
+      </div>
       <div class="bar-spacer"></div>
       <a href="{{ url_for('home') }}" class="btn secondary">← Back</a>
       <button type="button" id="start-btn">Start</button>

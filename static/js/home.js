@@ -109,18 +109,29 @@
       return;
     }
     listRoot.innerHTML = keys
-      .map(
-        (k) => `
-      <div class="cat-group">
-        <h3 class="cat-heading">${esc(byCat[k].name)}</h3>
-        <ul class="q-list">
-          ${byCat[k].items
+      .map((k) => {
+        const group = byCat[k];
+        const count = group.items.length;
+        return `
+      <div class="cat-block">
+        <div class="cat-header">
+          <div class="cat-header-left">
+            <span class="cat-label">Category</span>
+            <h3 class="cat-heading">${esc(group.name)}</h3>
+          </div>
+          <span class="cat-count">${count} question${count === 1 ? "" : "s"}</span>
+        </div>
+        <ul class="cat-questions">
+          ${group.items
             .map(
               (q) => `
-            <li>
-              <div>
-                <strong>${esc(q.title)}</strong>
-                <div class="q-meta">${q.task_type.toUpperCase()}${q.has_image ? " · chart" : ""} · ${fmtDate(q.created_at)}</div>
+            <li class="q-row">
+              <div class="q-row-main">
+                <div class="q-row-title">
+                  <span class="task-pill">${esc((q.task_type || "task2").toUpperCase())}</span>
+                  <strong>${esc(q.title)}</strong>
+                </div>
+                <div class="q-meta">${q.has_image ? "Chart · " : ""}${fmtDate(q.created_at)}</div>
               </div>
               <div class="actions">
                 <select data-move="${q.id}" class="move-cat" title="Move to another category">
@@ -135,8 +146,8 @@
             )
             .join("")}
         </ul>
-      </div>`
-      )
+      </div>`;
+      })
       .join("");
 
     listRoot.querySelectorAll("[data-del]").forEach((btn) => {

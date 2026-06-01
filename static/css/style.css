@@ -386,9 +386,11 @@ button:disabled {
 .task1-chart {
   display: block;
   max-width: 100%;
+  width: 100%;
   height: auto;
   border: 1px solid var(--border);
   background: #fff;
+  transition: width 0.15s ease;
 }
 
 .write-pane {
@@ -524,25 +526,112 @@ button:disabled {
   line-height: 1;
 }
 
-.cat-group {
-  margin-bottom: 1rem;
+.cat-block {
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel);
+  overflow: hidden;
 }
 
-.cat-heading {
-  margin: 0 0 0.5rem;
-  font-size: 0.9rem;
+.cat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  background: linear-gradient(to right, #e8eef5, #f5f7fa);
+  border-bottom: 1px solid var(--border);
+}
+
+.cat-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.cat-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.cat-block .cat-heading {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
   color: var(--accent);
 }
 
+.cat-count {
+  font-size: 0.75rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.cat-questions {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem 0 0.5rem 1rem;
+  border-left: 3px solid var(--accent);
+  margin-left: 1rem;
+}
+
+.q-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem 0.65rem 0.75rem;
+  border-bottom: 1px solid #e8eaed;
+}
+
+.q-row:last-child {
+  border-bottom: none;
+}
+
+.q-row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.q-row-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.task-pill {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.12rem 0.4rem;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 2px;
+  letter-spacing: 0.03em;
+}
+
 @media (max-width: 640px) {
-  .q-list li {
+  .q-list li,
+  .q-row {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .q-list li .actions {
+  .q-list li .actions,
+  .q-row .actions {
     justify-content: flex-start;
     margin-top: 0.35rem;
+  }
+
+  .cat-questions {
+    margin-left: 0.5rem;
+    padding-left: 0.75rem;
   }
 }
 

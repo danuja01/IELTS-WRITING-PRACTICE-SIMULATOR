@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>IELTS Writing Practice</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ app_version }}">
 </head>
 <body>
   <header class="topbar">
@@ -58,6 +58,6 @@
       <p><a href="{{ url_for('history_page') }}">View full history →</a></p>
     </section>
   </main>
-  <script src="{{ url_for('static', filename='js/home.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/home.js') }}?v={{ app_version }}"></script>
 </body>
 </html>

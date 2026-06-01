@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.6
+
+- Practice: question text shown before Task 1 chart; chart size slider in toolbar (50–100%)
+- Home: clearer category cards, indented questions with left accent line, task badges
+
 ## 2.0.5
 
 - Question prompt visibly bold (`strong` + CSS cache bust)
