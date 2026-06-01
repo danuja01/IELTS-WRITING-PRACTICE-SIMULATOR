@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.8
+
+- Home accordions: opening one section (My questions / All) automatically closes the other
+
 ## 2.0.7
 
 - Questions are shared: everyone can see and practice questions added by any user

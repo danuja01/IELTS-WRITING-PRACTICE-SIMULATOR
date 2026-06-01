@@ -17,6 +17,18 @@
   let categories = [];
   let questions = [];
 
+  function initExclusiveAccordions() {
+    const accordions = document.querySelectorAll(".question-accordions .accordion");
+    accordions.forEach((panel) => {
+      panel.addEventListener("toggle", () => {
+        if (!panel.open) return;
+        accordions.forEach((other) => {
+          if (other !== panel) other.removeAttribute("open");
+        });
+      });
+    });
+  }
+
   document.getElementById("logout-btn").addEventListener("click", async () => {
     await fetch("/api/logout", { method: "POST" });
     window.location.href = "/login";
@@ -276,6 +288,7 @@
   });
 
   toggleTask1Image();
+  initExclusiveAccordions();
   loadCategories();
   loadQuestions();
   loadHistory();
