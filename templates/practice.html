@@ -44,6 +44,7 @@
         <textarea id="essay" placeholder="Click Start, then begin writing…" disabled spellcheck="true"></textarea>
         <div class="write-footer">
           <span id="save-status">Not started</span>
+          <span id="sel-word-count" class="sel-word-count" hidden></span>
           <span>Auto-saves every 15s</span>
         </div>
       </section>
@@ -65,6 +66,6 @@
   <script>
     window.QUESTION_ID = {{ question_id }};
   </script>
-  <script src="{{ url_for('static', filename='js/practice.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/practice.js') }}?v={{ app_version }}"></script>
 </body>
 </html>

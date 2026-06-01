@@ -18,6 +18,7 @@
   const resultStats = document.getElementById("result-stats");
   const essayMenu = document.getElementById("essay-context-menu");
   const promptMenu = document.getElementById("prompt-context-menu");
+  const selWordEl = document.getElementById("sel-word-count");
 
   let question = null;
   let writingId = null;
@@ -33,6 +34,7 @@
   let activeParaIndex = 0;
   let plainPrompt = "";
   let savedEssaySel = { start: 0, end: 0 };
+  let savedPromptRange = null;
 
   function closeMenus() {
     essayMenu.classList.remove("is-open");
@@ -48,6 +50,56 @@
 
   function saveEssaySelection() {
     savedEssaySel = { start: essay.selectionStart, end: essay.selectionEnd };
+    updateSelectedWordDisplay();
+  }
+
+  function getEssaySel() {
+    let start = essay.selectionStart;
+    let end = essay.selectionEnd;
+    if (start === end && savedEssaySel.start !== savedEssaySel.end) {
+      start = savedEssaySel.start;
+      end = savedEssaySel.end;
+    }
+    return { start, end };
+  }
+
+  function updateSelectedWordDisplay() {
+    if (!selWordEl) return;
+    const { start, end } = getEssaySel();
+    if (start >= end) {
+      selWordEl.hidden = true;
+      selWordEl.textContent = "";
+      return;
+    }
+    const wc = countWords(essay.value.slice(start, end));
+    selWordEl.hidden = false;
+    selWordEl.textContent = `Selected: ${wc} word${wc === 1 ? "" : "s"}`;
+  }
+
+  function showEssayWordMenu(clientX, clientY) {
+    const { start, end } = getEssaySel();
+    if (start >= end) return false;
+    const wc = countWords(essay.value.slice(start, end));
+    essayMenu.querySelector(".wc-label").textContent = `${wc} word${wc === 1 ? "" : "s"} selected`;
+    openMenu(essayMenu, clientX, clientY);
+    return true;
+  }
+
+  function showPromptHighlightMenu(clientX, clientY) {
+    const sel = window.getSelection();
+    let range = null;
+    if (sel && !sel.isCollapsed) {
+      range = sel.getRangeAt(0);
+    } else if (savedPromptRange) {
+      range = savedPromptRange;
+    }
+    if (!range) return false;
+    const promptEl = document.getElementById("prompt-text");
+    if (!promptEl || !promptEl.contains(range.commonAncestorContainer)) return false;
+    promptMenu._range = range.cloneRange();
+    savedPromptRange = range.cloneRange();
+    openMenu(promptMenu, clientX, clientY);
+    return true;
   }
 
   function rangeToPlainOffsets(container, range) {
@@ -258,15 +310,27 @@
     renderPrompt();
   }
 
-  questionPane.addEventListener("contextmenu", (e) => {
+  questionPane.addEventListener("mouseup", (e) => {
     const promptEl = e.target.closest("#prompt-text");
     if (!promptEl) return;
     const sel = window.getSelection();
-    if (!sel || sel.isCollapsed || !promptEl.contains(sel.anchorNode)) return;
-    e.preventDefault();
-    promptMenu._range = sel.getRangeAt(0).cloneRange();
-    openMenu(promptMenu, e.pageX, e.pageY);
+    if (sel && !sel.isCollapsed && promptEl.contains(sel.anchorNode)) {
+      savedPromptRange = sel.getRangeAt(0).cloneRange();
+    }
   });
+
+  questionPane.addEventListener(
+    "contextmenu",
+    (e) => {
+      const promptEl = e.target.closest("#prompt-text");
+      if (!promptEl) return;
+      if (showPromptHighlightMenu(e.clientX, e.clientY)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    },
+    true
+  );
 
   promptMenu.addEventListener("click", (e) => e.stopPropagation());
 
@@ -393,31 +457,52 @@
     if (started) tickParagraphTime();
   });
 
-  essay.addEventListener("keyup", () => {
-    if (started) activeParaIndex = paragraphIndexAtPosition(essay.value, essay.selectionStart);
-  });
-
   essay.addEventListener("select", saveEssaySelection);
   essay.addEventListener("mouseup", saveEssaySelection);
 
-  essay.addEventListener("contextmenu", (e) => {
-    let start = essay.selectionStart;
-    let end = essay.selectionEnd;
-    if (start === end && savedEssaySel.start !== savedEssaySel.end) {
-      start = savedEssaySel.start;
-      end = savedEssaySel.end;
+  essay.addEventListener("keyup", () => {
+    saveEssaySelection();
+    if (started) activeParaIndex = paragraphIndexAtPosition(essay.value, essay.selectionStart);
+  });
+
+  essay.addEventListener(
+    "mousedown",
+    (e) => {
+      if (e.button === 2) saveEssaySelection();
+    },
+    true
+  );
+
+  essay.addEventListener(
+    "contextmenu",
+    (e) => {
+      saveEssaySelection();
+      if (showEssayWordMenu(e.clientX, e.clientY)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    },
+    true
+  );
+
+  essay.addEventListener("auxclick", (e) => {
+    if (e.button !== 2) return;
+    saveEssaySelection();
+    if (showEssayWordMenu(e.clientX, e.clientY)) {
+      e.preventDefault();
     }
-    if (start === end) return;
-    e.preventDefault();
-    const selected = essay.value.slice(start, end);
-    const wc = countWords(selected);
-    essayMenu.querySelector(".wc-label").textContent = `${wc} word${wc === 1 ? "" : "s"} selected`;
-    openMenu(essayMenu, e.pageX, e.pageY);
   });
 
   essayMenu.addEventListener("click", (e) => e.stopPropagation());
 
   document.addEventListener("click", closeMenus);
+  document.addEventListener(
+    "scroll",
+    () => {
+      closeMenus();
+    },
+    true
+  );
 
   startBtn.addEventListener("click", startSession);
   finishBtn.addEventListener("click", finishSession);

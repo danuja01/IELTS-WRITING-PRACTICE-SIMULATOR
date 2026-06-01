@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.4
+
+- Fix right-click word count on Mac (capture selection before native menu opens)
+- Show "Selected: N words" in footer while answer text is highlighted
+
 ## 2.0.2
 
 - Fix admin user page stuck on "Loading…" (JS error handling, missing attempts fallback, cache bust)
