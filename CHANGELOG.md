@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.14
+
+- Practice page: fix page-level overflow on some screens (scroll contained in question/answer panes)
+
 ## 2.0.13
 
 - Highlights tied to current attempt only; cleared on Finish and when starting a new session
