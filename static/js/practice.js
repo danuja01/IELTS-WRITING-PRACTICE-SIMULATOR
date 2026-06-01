@@ -16,6 +16,8 @@
   const questionPane = document.getElementById("question-pane");
   const resultModal = document.getElementById("result-modal");
   const resultStats = document.getElementById("result-stats");
+  const essayMenu = document.getElementById("essay-context-menu");
+  const promptMenu = document.getElementById("prompt-context-menu");
 
   let question = null;
   let writingId = null;
@@ -23,8 +25,13 @@
   let startTime = null;
   let tickInterval = null;
   let saveInterval = null;
+  let paraInterval = null;
   let at40Recorded = false;
   let snapshot40 = { ms: null, words: 0, caret: 0 };
+  let paragraphTimes = [];
+  let lastParaTick = null;
+  let activeParaIndex = 0;
+  let plainPrompt = "";
 
   fontSize.addEventListener("input", applyEditorStyle);
   lineHeight.addEventListener("input", applyEditorStyle);
@@ -39,6 +46,60 @@
     const t = (text || "").trim();
     if (!t) return 0;
     return t.split(/\s+/).filter(Boolean).length;
+  }
+
+  function splitParagraphs(text) {
+    const parts = (text || "").split(/\n\s*\n/);
+    return parts.filter((p) => p.trim().length > 0);
+  }
+
+  function paragraphIndexAtPosition(text, pos) {
+    const paras = splitParagraphs(text);
+    if (!paras.length) return 0;
+    let offset = 0;
+    const chunks = (text || "").split(/(\n\s*\n)/);
+    let pIndex = 0;
+    let inPara = false;
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      if (/^\n\s*\n$/.test(chunk)) {
+        if (inPara) pIndex++;
+        inPara = false;
+        offset += chunk.length;
+        continue;
+      }
+      if (!chunk.trim()) {
+        offset += chunk.length;
+        continue;
+      }
+      const start = offset;
+      const end = offset + chunk.length;
+      if (pos >= start && pos <= end) return Math.min(pIndex, paras.length - 1);
+      offset = end;
+      inPara = true;
+    }
+    return Math.max(0, paras.length - 1);
+  }
+
+  function buildParagraphStats() {
+    const paras = splitParagraphs(essay.value);
+    return paras.map((text, index) => ({
+      index,
+      time_ms: paragraphTimes[index] || 0,
+      words: countWords(text),
+      text: text.trim().slice(0, 120),
+      preview: text.trim().slice(0, 80),
+    }));
+  }
+
+  function tickParagraphTime() {
+    if (!started || lastParaTick == null) return;
+    const now = Date.now();
+    const delta = now - lastParaTick;
+    lastParaTick = now;
+    activeParaIndex = paragraphIndexAtPosition(essay.value, essay.selectionStart);
+    while (paragraphTimes.length <= activeParaIndex) paragraphTimes.push(0);
+    paragraphTimes[activeParaIndex] += delta;
   }
 
   function formatClock(ms) {
@@ -68,7 +129,6 @@
     if (!started || !startTime) return;
     const elapsed = Date.now() - startTime;
     elapsedMain.textContent = formatClock(elapsed);
-
     const remaining = examLimitMs - elapsed;
     if (remaining > 0) {
       timerMain.textContent = formatClock(remaining);
@@ -100,6 +160,27 @@
     return res;
   }
 
+  async function saveHighlights(highlights) {
+    await api(`/api/questions/${qid}/highlights`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ highlights }),
+    });
+  }
+
+  function renderPrompt() {
+    const mins = question.task_type === "task1" ? 20 : 40;
+    const imgHtml = question.has_image
+      ? `<figure class="task1-figure"><img src="${escapeHtml(question.image_url)}" alt="Chart" class="task1-chart"></figure>`
+      : "";
+    questionPane.innerHTML = `
+      <span class="task-badge">${escapeHtml(question.task_type)} · ${mins} min exam time</span>
+      <h2 class="question-title">${escapeHtml(question.title)}</h2>
+      ${imgHtml}
+      <div id="prompt-text" class="prompt-text">${question.prompt_html || escapeHtml(question.prompt)}</div>`;
+    plainPrompt = question.prompt || "";
+  }
+
   async function loadQuestion() {
     const res = await api(`/api/questions/${qid}`);
     if (!res.ok) {
@@ -110,15 +191,54 @@
     const mins = question.task_type === "task1" ? 20 : 40;
     examLimitMs = mins * 60 * 1000;
     timerMain.textContent = formatClock(examLimitMs);
-    const imgHtml = question.has_image
-      ? `<figure class="task1-figure"><img src="${escapeHtml(question.image_url)}" alt="Task 1 chart or diagram" class="task1-chart"></figure>`
-      : "";
-    questionPane.innerHTML = `
-      <span class="task-badge">${escapeHtml(question.task_type)} · ${mins} min exam time</span>
-      <h2 style="margin:0 0 0.75rem;font-size:1.05rem">${escapeHtml(question.title)}</h2>
-      ${imgHtml}
-      <pre>${escapeHtml(question.prompt)}</pre>`;
+    renderPrompt();
+    setupPromptHighlightMenu();
   }
+
+  function setupPromptHighlightMenu() {
+    const promptEl = document.getElementById("prompt-text");
+    if (!promptEl) return;
+    promptEl.addEventListener("contextmenu", (e) => {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || !promptEl.contains(sel.anchorNode)) return;
+      e.preventDefault();
+      promptMenu.style.left = e.pageX + "px";
+      promptMenu.style.top = e.pageY + "px";
+      promptMenu.hidden = false;
+      promptMenu._range = sel.getRangeAt(0).cloneRange();
+    });
+  }
+
+  promptMenu.querySelector("[data-action=highlight]").addEventListener("click", async () => {
+    promptMenu.hidden = true;
+    const range = promptMenu._range;
+    if (!range || !plainPrompt) return;
+    const pre = range.startContainer;
+    const promptEl = document.getElementById("prompt-text");
+    const temp = document.createElement("div");
+    temp.appendChild(range.cloneContents());
+    const selectedText = temp.textContent;
+    if (!selectedText) return;
+    const start = plainPrompt.indexOf(selectedText);
+    if (start < 0) return;
+    const end = start + selectedText.length;
+    const highlights = (question.highlights || []).slice();
+    highlights.push({ start, end });
+    question.highlights = highlights;
+    question.prompt_html = null;
+    const sorted = highlights.slice().sort((a, b) => b.start - a.start);
+    let html = plainPrompt;
+    sorted.forEach((h) => {
+      html =
+        html.slice(0, h.start) +
+        "<mark class=\"q-highlight\">" +
+        html.slice(h.start, h.end) +
+        "</mark>" +
+        html.slice(h.end);
+    });
+    promptEl.innerHTML = html;
+    await saveHighlights(highlights);
+  });
 
   async function loadDraft() {
     const res = await api(`/api/writings/active/${qid}`);
@@ -133,6 +253,7 @@
 
   async function saveDraft(finish) {
     if (!writingId && !started && !finish) return;
+    tickParagraphTime();
     const elapsed = started && startTime ? Date.now() - startTime : null;
     const body = {
       id: writingId,
@@ -144,6 +265,7 @@
       words_at_40min: snapshot40.ms != null ? snapshot40.words : null,
       finish: !!finish,
       final_words: finish ? countWords(essay.value) : null,
+      paragraph_stats: finish || started ? buildParagraphStats() : null,
     };
     const res = await api("/api/writings", {
       method: "POST",
@@ -160,14 +282,17 @@
     if (started) return;
     started = true;
     startTime = Date.now();
+    lastParaTick = Date.now();
+    paragraphTimes = [];
+    activeParaIndex = 0;
     essay.disabled = false;
     essay.focus();
     startBtn.disabled = true;
     finishBtn.disabled = false;
     saveStatus.textContent = "Writing…";
-
     tickInterval = setInterval(updateTimer, 250);
     saveInterval = setInterval(() => saveDraft(false), 15000);
+    paraInterval = setInterval(tickParagraphTime, 2000);
     updateTimer();
     updateWordCount();
   }
@@ -175,7 +300,6 @@
   function showResults(elapsed) {
     const words = countWords(essay.value);
     const pos = snapshot40.caret || 0;
-    const preview = essay.value.slice(Math.max(0, pos - 40), pos + 40);
     const rows = [
       ["Total time", formatDuration(elapsed)],
       ["Final word count", String(words)],
@@ -183,23 +307,17 @@
     if (snapshot40.ms != null) {
       rows.push(
         [`Time at ${examLimitMs / 60000} min mark`, formatDuration(snapshot40.ms)],
-        [`Words at ${examLimitMs / 60000} min`, String(snapshot40.words)],
-        [`Cursor at ${examLimitMs / 60000} min`, `character ${pos}`]
+        [`Words at ${examLimitMs / 60000} min`, String(snapshot40.words)]
       );
-    } else {
-      rows.push(["Exam time mark", `Not reached (finished under ${examLimitMs / 60000} min)`]);
+    }
+    const stats = buildParagraphStats();
+    if (stats.length) {
+      rows.push(["Paragraphs tracked", String(stats.length)]);
     }
     resultStats.innerHTML = rows
-      .map(
-        ([k, v], i) =>
-          `<div class="stat-row${i === 2 || k.includes("40 min") ? " highlight" : ""}">
-            <span>${k}</span><strong>${escapeHtml(String(v))}</strong>
-          </div>`
-      )
+      .map(([k, v]) => `<div class="stat-row"><span>${k}</span><strong>${escapeHtml(String(v))}</strong></div>`)
       .join("");
-    if (snapshot40.ms != null && preview.trim()) {
-      resultStats.innerHTML += `<p style="font-size:0.8rem;color:var(--muted);margin:0">Near cursor at 40:00:<br><em>${escapeHtml(preview)}…</em></p>`;
-    }
+    resultStats.innerHTML += `<p class="q-meta" style="margin-top:0.75rem"><a href="/history/writing/${writingId}">View full analytics →</a></p>`;
     resultModal.classList.add("show");
   }
 
@@ -207,6 +325,8 @@
     if (!started) return;
     clearInterval(tickInterval);
     clearInterval(saveInterval);
+    clearInterval(paraInterval);
+    tickParagraphTime();
     const elapsed = Date.now() - startTime;
     essay.disabled = true;
     finishBtn.disabled = true;
@@ -220,7 +340,37 @@
     return d.innerHTML;
   }
 
-  essay.addEventListener("input", updateWordCount);
+  essay.addEventListener("input", () => {
+    updateWordCount();
+    if (started) activeParaIndex = paragraphIndexAtPosition(essay.value, essay.selectionStart);
+  });
+
+  essay.addEventListener("click", () => {
+    if (started) tickParagraphTime();
+  });
+
+  essay.addEventListener("keyup", () => {
+    if (started) activeParaIndex = paragraphIndexAtPosition(essay.value, essay.selectionStart);
+  });
+
+  essay.addEventListener("contextmenu", (e) => {
+    const start = essay.selectionStart;
+    const end = essay.selectionEnd;
+    if (start === end) return;
+    e.preventDefault();
+    const selected = essay.value.slice(start, end);
+    const wc = countWords(selected);
+    essayMenu.querySelector(".wc-label").textContent = `${wc} word${wc === 1 ? "" : "s"} selected`;
+    essayMenu.style.left = e.pageX + "px";
+    essayMenu.style.top = e.pageY + "px";
+    essayMenu.hidden = false;
+  });
+
+  document.addEventListener("click", () => {
+    essayMenu.hidden = true;
+    promptMenu.hidden = true;
+  });
+
   startBtn.addEventListener("click", startSession);
   finishBtn.addEventListener("click", finishSession);
   document.getElementById("modal-home").addEventListener("click", () => {

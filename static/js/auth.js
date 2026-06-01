@@ -4,6 +4,8 @@
   const submitBtn = document.getElementById("submit-btn");
   const tabLogin = document.getElementById("tab-login");
   const tabRegister = document.getElementById("tab-register");
+  const emailWrap = document.getElementById("email-wrap");
+  const emailInput = document.getElementById("email");
   let mode = "login";
 
   function setMode(m) {
@@ -11,6 +13,8 @@
     tabLogin.classList.toggle("active", m === "login");
     tabRegister.classList.toggle("active", m === "register");
     submitBtn.textContent = m === "login" ? "Login" : "Register";
+    emailWrap.hidden = m !== "register";
+    emailInput.required = m === "register";
     msg.textContent = "";
     msg.className = "msg";
   }
@@ -24,12 +28,14 @@
     const username = document.getElementById("username").value.trim();
     const password = document.getElementById("password").value;
     const url = mode === "login" ? "/api/login" : "/api/register";
+    const body = { username, password };
+    if (mode === "register") body.email = emailInput.value.trim();
     submitBtn.disabled = true;
     try {
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -37,7 +43,7 @@
         msg.className = "msg error";
         return;
       }
-      window.location.href = "/home";
+      window.location.href = data.redirect || "/home";
     } catch {
       msg.textContent = "Network error";
       msg.className = "msg error";

@@ -1,5 +1,5 @@
 (function () {
-  const listEl = document.getElementById("question-list");
+  const listRoot = document.getElementById("question-list");
   const historyEl = document.getElementById("history-list");
   const form = document.getElementById("add-question-form");
   const formMsg = document.getElementById("form-msg");
@@ -7,6 +7,39 @@
   const imageBlock = document.getElementById("task1-image-block");
   const imageInput = document.getElementById("q-image");
   const imagePreview = document.getElementById("q-image-preview");
+  const catSelect = document.getElementById("q-category");
+  const catList = document.getElementById("category-list");
+  const catForm = document.getElementById("add-category-form");
+
+  let categories = [];
+  let questions = [];
+
+  document.getElementById("logout-btn").addEventListener("click", async () => {
+    await fetch("/api/logout", { method: "POST" });
+    window.location.href = "/login";
+  });
+
+  function esc(s) {
+    const d = document.createElement("div");
+    d.textContent = s ?? "";
+    return d.innerHTML;
+  }
+
+  function fmtDate(iso) {
+    try {
+      return new Date(iso).toLocaleString();
+    } catch {
+      return iso || "";
+    }
+  }
+
+  function fmtMs(ms) {
+    if (ms == null) return "—";
+    const sec = Math.floor(ms / 1000);
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${String(s).padStart(2, "0")}`;
+  }
 
   function toggleTask1Image() {
     const isTask1 = taskSelect.value === "task1";
@@ -14,7 +47,6 @@
     if (!isTask1) {
       imageInput.value = "";
       imagePreview.hidden = true;
-      imagePreview.removeAttribute("src");
     }
   }
 
@@ -23,53 +55,115 @@
     const file = imageInput.files[0];
     if (!file) {
       imagePreview.hidden = true;
-      imagePreview.removeAttribute("src");
       return;
     }
     imagePreview.src = URL.createObjectURL(file);
     imagePreview.hidden = false;
   });
-  toggleTask1Image();
 
-  document.getElementById("logout-btn").addEventListener("click", async () => {
-    await fetch("/api/logout", { method: "POST" });
-    window.location.href = "/login";
-  });
-
-  async function loadQuestions() {
-    const res = await fetch("/api/questions");
+  async function loadCategories() {
+    const res = await fetch("/api/categories");
     if (res.status === 401) {
       window.location.href = "/login";
       return;
     }
-    const items = await res.json();
-    if (!items.length) {
-      listEl.innerHTML = '<li class="q-meta">No questions yet — add one above.</li>';
-      return;
-    }
-    listEl.innerHTML = items
-      .map(
-        (q) => `
-      <li>
-        <div>
-          <strong>${escapeHtml(q.title)}</strong>
-          <div class="q-meta">${q.task_type.toUpperCase()}${q.has_image ? " · 📊 image" : ""} · ${formatDate(q.created_at)}</div>
-        </div>
-        <div class="actions">
-          <a class="btn" href="/practice/${q.id}">Start</a>
-          <button type="button" class="danger" data-id="${q.id}">Delete</button>
-        </div>
-      </li>`
-      )
-      .join("");
-
-    listEl.querySelectorAll("button.danger").forEach((btn) => {
+    categories = await res.json();
+    catSelect.innerHTML =
+      '<option value="">Uncategorized</option>' +
+      categories.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join("");
+    catList.innerHTML = categories.length
+      ? categories
+          .map(
+            (c) => `
+        <li class="tag-item">
+          <span>${esc(c.name)}</span>
+          <button type="button" data-del-cat="${c.id}" class="link-btn">×</button>
+        </li>`
+          )
+          .join("")
+      : '<li class="q-meta">No categories yet.</li>';
+    catList.querySelectorAll("[data-del-cat]").forEach((btn) => {
       btn.addEventListener("click", async () => {
-        if (!confirm("Delete this question?")) return;
-        await fetch(`/api/questions/${btn.dataset.id}`, { method: "DELETE" });
+        if (!confirm("Delete category? Questions become uncategorized.")) return;
+        await fetch(`/api/categories/${btn.dataset.delCat}`, { method: "DELETE" });
+        loadCategories();
         loadQuestions();
       });
     });
+  }
+
+  function renderQuestions() {
+    const byCat = {};
+    questions.forEach((q) => {
+      const key = q.category_id || 0;
+      if (!byCat[key]) byCat[key] = { name: q.category_name || "Uncategorized", items: [] };
+      byCat[key].items.push(q);
+    });
+    const keys = Object.keys(byCat).sort((a, b) => {
+      if (a === "0") return 1;
+      if (b === "0") return -1;
+      return byCat[a].name.localeCompare(byCat[b].name);
+    });
+    if (!questions.length) {
+      listRoot.innerHTML = '<p class="q-meta">No questions yet.</p>';
+      return;
+    }
+    listRoot.innerHTML = keys
+      .map(
+        (k) => `
+      <div class="cat-group">
+        <h3 class="cat-heading">${esc(byCat[k].name)}</h3>
+        <ul class="q-list">
+          ${byCat[k].items
+            .map(
+              (q) => `
+            <li>
+              <div>
+                <strong>${esc(q.title)}</strong>
+                <div class="q-meta">${q.task_type.toUpperCase()}${q.has_image ? " · chart" : ""} · ${fmtDate(q.created_at)}</div>
+              </div>
+              <div class="actions">
+                <select data-move="${q.id}" class="move-cat" title="Move to category">
+                  <option value="">Move…</option>
+                  ${categories.map((c) => `<option value="${c.id}"${c.id === q.category_id ? " selected" : ""}>${esc(c.name)}</option>`).join("")}
+                </select>
+                <a class="btn" href="/practice/${q.id}">Start</a>
+                <button type="button" class="danger" data-del="${q.id}">Delete</button>
+              </div>
+            </li>`
+            )
+            .join("")}
+        </ul>
+      </div>`
+      )
+      .join("");
+
+    listRoot.querySelectorAll("[data-del]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Delete question?")) return;
+        await fetch(`/api/questions/${btn.dataset.del}`, { method: "DELETE" });
+        loadQuestions();
+      });
+    });
+    listRoot.querySelectorAll(".move-cat").forEach((sel) => {
+      sel.addEventListener("change", async () => {
+        const qid = sel.dataset.move;
+        const val = sel.value;
+        if (!val) return;
+        await fetch(`/api/questions/${qid}/move`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ category_id: parseInt(val, 10) }),
+        });
+        loadQuestions();
+      });
+    });
+  }
+
+  async function loadQuestions() {
+    const res = await fetch("/api/questions");
+    questions = await res.json();
+    renderQuestions();
   }
 
   async function loadHistory() {
@@ -80,20 +174,32 @@
       return;
     }
     historyEl.innerHTML = items
-      .map((w) => {
-        const total = formatMs(w.elapsed_ms);
-        const at40 = w.at_40min_ms != null ? formatMs(w.at_40min_ms) : "—";
-        const w40 = w.words_at_40min != null ? w.words_at_40min : "—";
-        const title = w.question_title || "Question";
-        return `<li>
-          <div>
-            <strong>${escapeHtml(title)}</strong>
-            <div class="q-meta">${formatDate(w.finished_at)} · ${w.final_words || 0} words · ${total} total · at 40m: ${w40} words (${at40})</div>
-          </div>
-        </li>`;
-      })
+      .map(
+        (w) => `
+      <li>
+        <div>
+          <strong>${esc(w.question_title || "Question")}</strong>
+          <div class="q-meta">${fmtDate(w.finished_at)} · ${w.final_words || 0} words · ${fmtMs(w.elapsed_ms)}</div>
+        </div>
+        <a class="btn secondary" href="/history/writing/${w.id}">View</a>
+      </li>`
+      )
       .join("");
   }
+
+  catForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const name = document.getElementById("cat-name").value.trim();
+    const res = await fetch("/api/categories", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    if (res.ok) {
+      document.getElementById("cat-name").value = "";
+      loadCategories();
+    }
+  });
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -101,6 +207,7 @@
     const title = document.getElementById("q-title").value.trim();
     const task_type = taskSelect.value;
     const prompt = document.getElementById("q-prompt").value.trim();
+    const category_id = catSelect.value || null;
     const imageFile = imageInput.files[0];
 
     let res;
@@ -109,13 +216,14 @@
       fd.append("title", title);
       fd.append("task_type", task_type);
       fd.append("prompt", prompt);
+      if (category_id) fd.append("category_id", category_id);
       fd.append("image", imageFile);
       res = await fetch("/api/questions", { method: "POST", body: fd });
     } else {
       res = await fetch("/api/questions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, task_type, prompt }),
+        body: JSON.stringify({ title, task_type, prompt, category_id: category_id ? parseInt(category_id, 10) : null }),
       });
     }
     const data = await res.json();
@@ -127,33 +235,11 @@
     form.reset();
     toggleTask1Image();
     formMsg.textContent = "Saved.";
-    formMsg.className = "msg";
     loadQuestions();
   });
 
-  function escapeHtml(s) {
-    const d = document.createElement("div");
-    d.textContent = s;
-    return d.innerHTML;
-  }
-
-  function formatDate(iso) {
-    if (!iso) return "";
-    try {
-      return new Date(iso).toLocaleString();
-    } catch {
-      return iso;
-    }
-  }
-
-  function formatMs(ms) {
-    if (ms == null) return "—";
-    const sec = Math.floor(ms / 1000);
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${m}:${String(s).padStart(2, "0")}`;
-  }
-
+  toggleTask1Image();
+  loadCategories();
   loadQuestions();
   loadHistory();
 })();

@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.0
+
+- Admin bootstrap (`/setup-admin`) when no admin exists
+- Admin panel: manage users, temp passwords, forced password change, edit any question
+- Register requires email; students cannot access admin routes
+- Per-user categories for grouping questions
+- Paragraph-level time tracking (split on blank lines) and grouped writing history with analytics
+- Question prompt: larger bold text, yellow highlights (right-click)
+- Essay: right-click selection word count
+- Version 2.0.0
+
 ## 1.3.0
 
 - Automatic weekly SQLite backup in `data/backups/` (keeps one latest file only)

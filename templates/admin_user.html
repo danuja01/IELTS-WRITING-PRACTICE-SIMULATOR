@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>User — Admin</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <header class="topbar topbar-admin">
+    <h1>User detail</h1>
+    <a href="{{ url_for('admin_home') }}" class="btn secondary">← Users</a>
+    <button type="button" class="secondary" id="logout-btn">Logout</button>
+  </header>
+  <main class="home-main">
+    <section class="panel" id="user-panel"><p class="q-meta">Loading…</p></section>
+    <section class="panel">
+      <h2>Writing history (by question)</h2>
+      <ul class="q-list" id="writing-groups"></ul>
+    </section>
+    <section class="panel">
+      <h2>Questions</h2>
+      <ul class="q-list" id="question-list"></ul>
+    </section>
+  </main>
+  <script>window.ADMIN_USER_ID = {{ user_id }};</script>
+  <script src="{{ url_for('static', filename='js/admin_user.js') }}"></script>
+</body>
+</html>

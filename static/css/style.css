@@ -445,6 +445,138 @@ button:disabled {
   margin: 0 -0.5rem;
 }
 
+.topbar-admin {
+  background: #4a1a6b;
+}
+
+.badge {
+  font-size: 0.7rem;
+  background: var(--accent);
+  color: #fff;
+  padding: 0.1rem 0.35rem;
+}
+
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+.inline-form label {
+  margin: 0;
+}
+
+.inline-form input {
+  margin: 0;
+}
+
+.tag-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.tag-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: #e8eaed;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+.link-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--danger);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.cat-group {
+  margin-bottom: 1rem;
+}
+
+.cat-heading {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  color: var(--accent);
+}
+
+.move-cat {
+  max-width: 110px;
+  font-size: 0.75rem;
+  padding: 0.25rem;
+}
+
+.question-title {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+}
+
+.prompt-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  user-select: text;
+}
+
+.q-highlight,
+mark.q-highlight {
+  background: #fff566;
+  color: inherit;
+  padding: 0 0.05em;
+}
+
+.ctx-menu {
+  position: fixed;
+  z-index: 200;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 0.35rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.ctx-menu button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  color: var(--accent);
+}
+
+.para-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.para-table th,
+.para-table td {
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+}
+
+.preview-cell {
+  max-width: 240px;
+  color: var(--muted);
+}
+
+.essay-readonly {
+  white-space: pre-wrap;
+  font-family: var(--font-write);
+  line-height: 1.6;
+  margin: 0;
+}
+
 @media (max-width: 768px) {
   .split {
     flex-direction: column;

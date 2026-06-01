@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>History — IELTS Writing</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Writing history</h1>
+    <a href="{{ url_for('home') }}" class="btn secondary">← Home</a>
+  </header>
+  <main class="home-main">
+    <section class="panel">
+      <p class="q-meta">Grouped by question — each row is all tries for one prompt.</p>
+      <ul class="q-list" id="group-list"><li class="q-meta">Loading…</li></ul>
+    </section>
+  </main>
+  <script src="{{ url_for('static', filename='js/history.js') }}"></script>
+</body>
+</html>

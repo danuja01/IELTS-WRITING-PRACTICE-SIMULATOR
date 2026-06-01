@@ -1,8 +1,12 @@
 # IELTS Writing Practice (lightweight)
 
-**Version 1.3.0** — see [CHANGELOG.md](CHANGELOG.md)
+**Version 2.0.0** — see [CHANGELOG.md](CHANGELOG.md)
 
-Minimal practice app for IELTS-style writing: split question/answer layout, word count, adjustable text size, 40-minute timer (turns red after 40 min but keeps running), simple login, and saved drafts.
+Minimal practice app for IELTS-style writing with admin panel, categories, paragraph analytics, and writing history.
+
+**First deploy after v2:** open the app → you’ll be sent to **Create admin account** (even if students already exist). Then use `/admin` to manage users.
+
+Features: split question/answer layout, word count, adjustable text size, 40-minute timer (turns red after 40 min but keeps running), simple login, and saved drafts.
 
 **Stack:** Python Flask + SQLite + vanilla HTML/CSS/JS (no Node build, low RAM — typically ~30–50 MB).
 

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Edit question — Admin</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <header class="topbar topbar-admin">
+    <h1>Edit question</h1>
+    <a href="{{ url_for('admin_home') }}" class="btn secondary">← Admin</a>
+  </header>
+  <main class="home-main">
+    <section class="panel">
+      <form id="edit-form">
+        <label for="q-title">Title</label>
+        <input type="text" id="q-title" required>
+        <label for="q-task">Task</label>
+        <select id="q-task">
+          <option value="task1">Task 1</option>
+          <option value="task2">Task 2</option>
+        </select>
+        <label for="q-category">Category</label>
+        <select id="q-category"><option value="">Uncategorized</option></select>
+        <div id="task1-image-block" class="task1-image-block" hidden>
+          <label for="q-image">Replace chart image (optional)</label>
+          <input type="file" id="q-image" accept="image/png,image/jpeg,image/webp,image/gif">
+        </div>
+        <label for="q-prompt">Prompt</label>
+        <textarea id="q-prompt" rows="8" required></textarea>
+        <button type="submit">Save changes</button>
+      </form>
+      <p class="msg" id="form-msg"></p>
+    </section>
+  </main>
+  <script>window.ADMIN_QUESTION_ID = {{ question_id }};</script>
+  <script src="{{ url_for('static', filename='js/admin_edit_question.js') }}"></script>
+</body>
+</html>

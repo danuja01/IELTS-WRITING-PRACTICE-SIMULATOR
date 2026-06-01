@@ -19,6 +19,10 @@
       <form id="auth-form">
         <label for="username">Username</label>
         <input type="text" id="username" name="username" autocomplete="username" required>
+        <div id="email-wrap" hidden>
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" autocomplete="email">
+        </div>
         <label for="password">Password</label>
         <input type="password" id="password" name="password" autocomplete="current-password" required>
         <button type="submit" id="submit-btn">Login</button>

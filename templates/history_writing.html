@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Attempt detail</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Attempt detail</h1>
+    <a href="javascript:history.back()" class="btn secondary">← Back</a>
+  </header>
+  <main class="home-main" id="detail-root">
+    <p class="q-meta">Loading…</p>
+  </main>
+  <script>
+    window.HISTORY_WRITING_ID = {{ writing_id }};
+    window.ADMIN_VIEW = {{ 'true' if admin_view else 'false' }};
+  </script>
+  <script src="{{ url_for('static', filename='js/history_writing.js') }}"></script>
+</body>
+</html>

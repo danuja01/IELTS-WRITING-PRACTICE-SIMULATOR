@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin — IELTS Writing</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <header class="topbar topbar-admin">
+    <h1>Admin panel <span class="version">v{{ app_version }}</span></h1>
+    <span class="user">{{ username }}</span>
+    <button type="button" class="secondary" id="logout-btn">Logout</button>
+  </header>
+  <main class="home-main">
+    <section class="panel">
+      <h2>Users</h2>
+      <p class="q-meta">Manage accounts, reset passwords, view writings. Admins cannot practice here.</p>
+      <ul class="q-list" id="user-list"><li class="q-meta">Loading…</li></ul>
+    </section>
+  </main>
+  <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+</body>
+</html>

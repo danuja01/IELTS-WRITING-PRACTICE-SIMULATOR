@@ -10,14 +10,25 @@
   <header class="topbar">
     <h1>IELTS Writing Practice <span class="version">v{{ app_version }}</span></h1>
     <span class="user">{{ username }}</span>
+    <a href="{{ url_for('history_page') }}" class="btn secondary">History</a>
     <button type="button" class="secondary" id="logout-btn" style="border-color:#fff;color:#fff;background:transparent">Logout</button>
   </header>
   <main class="home-main">
     <section class="panel">
+      <h2>Categories</h2>
+      <form id="add-category-form" class="inline-form">
+        <input type="text" id="cat-name" placeholder="e.g. IELTS 15" required>
+        <button type="submit">Add category</button>
+      </form>
+      <ul class="tag-list" id="category-list"></ul>
+    </section>
+    <section class="panel">
       <h2>Add question</h2>
       <form id="add-question-form">
         <label for="q-title">Title</label>
-        <input type="text" id="q-title" placeholder="e.g. Essay — Technology in education" required>
+        <input type="text" id="q-title" placeholder="e.g. Essay — Technology" required>
+        <label for="q-category">Category (optional)</label>
+        <select id="q-category"><option value="">Uncategorized</option></select>
         <label for="q-task">Task</label>
         <select id="q-task">
           <option value="task1">Task 1 (20 min)</option>
@@ -26,7 +37,7 @@
         <div id="task1-image-block" class="task1-image-block" hidden>
           <label for="q-image">Chart / diagram image (Task 1)</label>
           <input type="file" id="q-image" accept="image/png,image/jpeg,image/webp,image/gif">
-          <p class="q-meta">Upload the illustration (chart, graph, map, etc.) — max 8 MB</p>
+          <p class="q-meta">Max 8 MB</p>
           <img id="q-image-preview" class="image-preview" alt="" hidden>
         </div>
         <label for="q-prompt">Question / prompt</label>
@@ -37,15 +48,14 @@
     </section>
     <section class="panel">
       <h2>Your questions</h2>
-      <ul class="q-list" id="question-list">
-        <li class="q-meta">Loading…</li>
-      </ul>
+      <div id="question-list"></div>
     </section>
     <section class="panel">
-      <h2>Recent finished writings</h2>
+      <h2>Recent attempts</h2>
       <ul class="q-list" id="history-list">
         <li class="q-meta">Loading…</li>
       </ul>
+      <p><a href="{{ url_for('history_page') }}">View full history →</a></p>
     </section>
   </main>
   <script src="{{ url_for('static', filename='js/home.js') }}"></script>

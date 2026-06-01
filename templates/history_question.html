@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Attempts — History</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <h1 id="page-title">Attempts</h1>
+    <a href="{{ url_for('history_page') if not view_user_id else url_for('admin_user_page', user_id=view_user_id) }}" class="btn secondary">← Back</a>
+  </header>
+  <main class="home-main">
+    <section class="panel">
+      <ul class="q-list" id="attempt-list"></ul>
+    </section>
+  </main>
+  <script>
+    window.HISTORY_QUESTION_ID = {{ question_id }};
+    window.VIEW_USER_ID = {% if view_user_id %}{{ view_user_id }}{% else %}null{% endif %};
+  </script>
+  <script src="{{ url_for('static', filename='js/history_question.js') }}"></script>
+</body>
+</html>
