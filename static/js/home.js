@@ -101,10 +101,21 @@
       btn.addEventListener("click", async () => {
         if (!confirm("Delete category? Questions become uncategorized.")) return;
         await fetch(`/api/categories/${btn.dataset.delCat}`, { method: "DELETE" });
-        loadCategories();
+        await loadCategories();
         loadQuestions();
       });
     });
+    if (questions.length) renderQuestions();
+  }
+
+  function moveCategoryOptions(q) {
+    const current = q.category_id == null ? null : Number(q.category_id);
+    const opts = categories
+      .filter((c) => Number(c.id) !== current)
+      .map((c) => `<option value="${c.id}">${esc(c.name)}</option>`)
+      .join("");
+    const uncat = current != null ? '<option value="0">Uncategorized</option>' : "";
+    return opts + uncat;
   }
 
   function renderQuestionRows(items, showOwner) {
@@ -119,8 +130,7 @@
           ? `
                 <select data-move="${q.id}" class="move-cat" title="Move to another category">
                   <option value="">Move to…</option>
-                  ${categories.filter((c) => c.id !== q.category_id).map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join("")}
-                  ${q.category_id ? '<option value="0">Uncategorized</option>' : ""}
+                  ${moveCategoryOptions(q)}
                 </select>
                 <button type="button" class="danger" data-del="${q.id}">Delete</button>`
           : "";
@@ -281,7 +291,7 @@
     });
     if (res.ok) {
       document.getElementById("cat-name").value = "";
-      loadCategories();
+      await loadCategories();
     }
   });
 
@@ -324,7 +334,9 @@
 
   toggleTask1Image();
   initExclusiveAccordions();
-  loadCategories();
-  loadQuestions();
-  loadHistory();
+  (async () => {
+    await loadCategories();
+    await loadQuestions();
+    loadHistory();
+  })();
 })();

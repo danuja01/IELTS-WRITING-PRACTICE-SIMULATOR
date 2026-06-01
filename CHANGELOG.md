@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.15
+
+- Fix Move to… dropdown: load categories before questions so all user categories appear
+
 ## 2.0.14
 
 - Practice page: fix page-level overflow on some screens (scroll contained in question/answer panes)
