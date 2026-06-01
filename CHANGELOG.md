@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.7
+
+- Questions are shared: everyone can see and practice questions added by any user
+- Home page: accordion sections **My questions** and **All** (with author name on others’ questions)
+- Delete/move only on your own questions; history includes attempts on shared questions
+
 ## 2.0.6
 
 - Practice: question text shown before Task 1 chart; chart size slider in toolbar (50–100%)

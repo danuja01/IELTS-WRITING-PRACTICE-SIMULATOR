@@ -223,6 +223,8 @@ def _question_json(row, for_user_id=None):
     d["image_url"] = url_for("question_image", qid=d["id"]) if d["has_image"] else None
     d["highlights"] = _parse_highlights(d.get("prompt_highlights"))
     d["prompt_html"] = _apply_highlights(d.get("prompt") or "", d["highlights"])
+    if for_user_id is not None:
+        d["is_mine"] = d.get("user_id") == for_user_id
     return d
 
 
@@ -664,14 +666,15 @@ def move_question(qid):
 @app.route("/api/questions", methods=["GET"])
 @student_required
 def list_questions():
+    uid = session["user_id"]
     rows = get_db().execute(
-        """SELECT q.*, c.name AS category_name
+        """SELECT q.*, c.name AS category_name, u.username AS owner_username
            FROM questions q
            LEFT JOIN categories c ON c.id = q.category_id
-           WHERE q.user_id = ? ORDER BY (c.name IS NULL), c.name, q.id DESC""",
-        (session["user_id"],),
+           JOIN users u ON u.id = q.user_id
+           ORDER BY (c.name IS NULL), c.name, q.id DESC""",
     ).fetchall()
-    return jsonify([_question_json(r) for r in rows])
+    return jsonify([_question_json(r, for_user_id=uid) for r in rows])
 
 
 @app.route("/api/questions", methods=["POST"])
@@ -731,12 +734,15 @@ def create_question():
 @student_required
 def get_question(qid):
     row = get_db().execute(
-        "SELECT * FROM questions WHERE id = ? AND user_id = ?",
-        (qid, session["user_id"]),
+        """SELECT q.*, u.username AS owner_username
+           FROM questions q
+           JOIN users u ON u.id = q.user_id
+           WHERE q.id = ?""",
+        (qid,),
     ).fetchone()
     if not row:
         return jsonify({"error": "not found"}), 404
-    return jsonify(_question_json(row))
+    return jsonify(_question_json(row, for_user_id=session["user_id"]))
 
 
 @app.route("/api/questions/<int:qid>/highlights", methods=["PUT"])
@@ -748,8 +754,8 @@ def update_highlights(qid):
         return jsonify({"error": "highlights must be a list"}), 400
     db = get_db()
     row = db.execute(
-        "SELECT prompt FROM questions WHERE id = ? AND user_id = ?",
-        (qid, session["user_id"]),
+        "SELECT prompt FROM questions WHERE id = ?",
+        (qid,),
     ).fetchone()
     if not row:
         return jsonify({"error": "not found"}), 404
@@ -779,8 +785,8 @@ def question_image(qid):
         ).fetchone()
     else:
         row = get_db().execute(
-            "SELECT image_path FROM questions WHERE id = ? AND user_id = ?",
-            (qid, session["user_id"]),
+            "SELECT image_path FROM questions WHERE id = ?",
+            (qid,),
         ).fetchone()
     if not row or not row["image_path"]:
         abort(404)
@@ -818,11 +824,11 @@ def list_writings():
                       COUNT(w.id) AS attempt_count,
                       MAX(w.finished_at) AS last_finished,
                       MAX(w.final_words) AS best_words
-               FROM questions q
-               INNER JOIN writings w ON w.question_id = q.id AND w.finished_at IS NOT NULL
-               WHERE q.user_id = ? AND w.user_id = ?
+               FROM writings w
+               INNER JOIN questions q ON q.id = w.question_id
+               WHERE w.user_id = ? AND w.finished_at IS NOT NULL
                GROUP BY q.id ORDER BY last_finished DESC""",
-            (session["user_id"], session["user_id"]),
+            (session["user_id"],),
         ).fetchall()
         return jsonify([dict(r) for r in rows])
 
@@ -852,8 +858,8 @@ def writings_by_question(qid):
     ).fetchall()
     if not rows:
         q = get_db().execute(
-            "SELECT id, title FROM questions WHERE id = ? AND user_id = ?",
-            (qid, session["user_id"]),
+            "SELECT id, title, task_type FROM questions WHERE id = ?",
+            (qid,),
         ).fetchone()
         if not q:
             return jsonify({"error": "not found"}), 404

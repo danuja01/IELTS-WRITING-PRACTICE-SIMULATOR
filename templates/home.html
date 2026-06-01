@@ -47,8 +47,23 @@
       <p class="msg" id="form-msg"></p>
     </section>
     <section class="panel">
-      <h2>Your questions</h2>
-      <div id="question-list"></div>
+      <h2>Questions</h2>
+      <div class="question-accordions">
+        <details class="accordion" open>
+          <summary class="accordion-head">
+            <span class="accordion-title">My questions</span>
+            <span class="accordion-count" id="my-question-count"></span>
+          </summary>
+          <div class="accordion-body" id="my-question-list"></div>
+        </details>
+        <details class="accordion">
+          <summary class="accordion-head">
+            <span class="accordion-title">All</span>
+            <span class="accordion-count" id="all-question-count"></span>
+          </summary>
+          <div class="accordion-body" id="all-question-list"></div>
+        </details>
+      </div>
     </section>
     <section class="panel">
       <h2>Recent attempts</h2>

@@ -1,5 +1,8 @@
 (function () {
-  const listRoot = document.getElementById("question-list");
+  const myListRoot = document.getElementById("my-question-list");
+  const allListRoot = document.getElementById("all-question-list");
+  const myCountEl = document.getElementById("my-question-count");
+  const allCountEl = document.getElementById("all-question-count");
   const historyEl = document.getElementById("history-list");
   const form = document.getElementById("add-question-form");
   const formMsg = document.getElementById("form-msg");
@@ -92,9 +95,44 @@
     });
   }
 
-  function renderQuestions() {
+  function renderQuestionRows(items, showOwner) {
+    return items
+      .map((q) => {
+        const ownerLine = showOwner && !q.is_mine ? ` · by ${esc(q.owner_username || "unknown")}` : "";
+        const manageActions = q.is_mine
+          ? `
+                <select data-move="${q.id}" class="move-cat" title="Move to another category">
+                  <option value="">Move to…</option>
+                  ${categories.filter((c) => c.id !== q.category_id).map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join("")}
+                  ${q.category_id ? '<option value="0">Uncategorized</option>' : ""}
+                </select>
+                <button type="button" class="danger" data-del="${q.id}">Delete</button>`
+          : "";
+        return `
+            <li class="q-row">
+              <div class="q-row-main">
+                <div class="q-row-title">
+                  <span class="task-pill">${esc((q.task_type || "task2").toUpperCase())}</span>
+                  <strong>${esc(q.title)}</strong>
+                </div>
+                <div class="q-meta">${q.has_image ? "Chart · " : ""}${fmtDate(q.created_at)}${ownerLine}</div>
+              </div>
+              <div class="actions">
+                ${manageActions}
+                <a class="btn" href="/practice/${q.id}">Start</a>
+              </div>
+            </li>`;
+      })
+      .join("");
+  }
+
+  function renderGroupedList(root, items, showOwner) {
+    if (!items.length) {
+      root.innerHTML = '<p class="q-meta">No questions here yet.</p>';
+      return;
+    }
     const byCat = {};
-    questions.forEach((q) => {
+    items.forEach((q) => {
       const key = q.category_id || 0;
       if (!byCat[key]) byCat[key] = { name: q.category_name || "Uncategorized", items: [] };
       byCat[key].items.push(q);
@@ -104,11 +142,7 @@
       if (b === "0") return -1;
       return byCat[a].name.localeCompare(byCat[b].name);
     });
-    if (!questions.length) {
-      listRoot.innerHTML = '<p class="q-meta">No questions yet.</p>';
-      return;
-    }
-    listRoot.innerHTML = keys
+    root.innerHTML = keys
       .map((k) => {
         const group = byCat[k];
         const count = group.items.length;
@@ -122,42 +156,22 @@
           <span class="cat-count">${count} question${count === 1 ? "" : "s"}</span>
         </div>
         <ul class="cat-questions">
-          ${group.items
-            .map(
-              (q) => `
-            <li class="q-row">
-              <div class="q-row-main">
-                <div class="q-row-title">
-                  <span class="task-pill">${esc((q.task_type || "task2").toUpperCase())}</span>
-                  <strong>${esc(q.title)}</strong>
-                </div>
-                <div class="q-meta">${q.has_image ? "Chart · " : ""}${fmtDate(q.created_at)}</div>
-              </div>
-              <div class="actions">
-                <select data-move="${q.id}" class="move-cat" title="Move to another category">
-                  <option value="">Move to…</option>
-                  ${categories.filter((c) => c.id !== q.category_id).map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join("")}
-                  ${q.category_id ? '<option value="0">Uncategorized</option>' : ""}
-                </select>
-                <a class="btn" href="/practice/${q.id}">Start</a>
-                <button type="button" class="danger" data-del="${q.id}">Delete</button>
-              </div>
-            </li>`
-            )
-            .join("")}
+          ${renderQuestionRows(group.items, showOwner)}
         </ul>
       </div>`;
       })
       .join("");
+  }
 
-    listRoot.querySelectorAll("[data-del]").forEach((btn) => {
+  function bindQuestionActions(root) {
+    root.querySelectorAll("[data-del]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         if (!confirm("Delete question?")) return;
         await fetch(`/api/questions/${btn.dataset.del}`, { method: "DELETE" });
         loadQuestions();
       });
     });
-    listRoot.querySelectorAll(".move-cat").forEach((sel) => {
+    root.querySelectorAll(".move-cat").forEach((sel) => {
       sel.addEventListener("change", async () => {
         const qid = sel.dataset.move;
         const val = sel.value;
@@ -171,6 +185,16 @@
         loadQuestions();
       });
     });
+  }
+
+  function renderQuestions() {
+    const mine = questions.filter((q) => q.is_mine);
+    if (myCountEl) myCountEl.textContent = mine.length ? `${mine.length}` : "0";
+    if (allCountEl) allCountEl.textContent = questions.length ? `${questions.length}` : "0";
+    renderGroupedList(myListRoot, mine, false);
+    renderGroupedList(allListRoot, questions, true);
+    bindQuestionActions(myListRoot);
+    bindQuestionActions(allListRoot);
   }
 
   async function loadQuestions() {
