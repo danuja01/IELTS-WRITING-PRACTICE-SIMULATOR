@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.13
+
+- Highlights tied to current attempt only; cleared on Finish and when starting a new session
+
 ## 2.0.12
 
 - Question highlights are session-only (browser tab); not saved to DB or visible to others

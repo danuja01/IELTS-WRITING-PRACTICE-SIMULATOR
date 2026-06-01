@@ -38,7 +38,6 @@
   let activeParaIndex = 0;
   let plainPrompt = "";
   let sessionHighlights = [];
-  const highlightStorageKey = `practice-highlights-${qid}`;
   let savedEssaySel = { start: 0, end: 0 };
   let savedPromptRange = null;
 
@@ -124,9 +123,15 @@
     }
   }
 
-  function loadSessionHighlights() {
+  function highlightStorageKey() {
+    return writingId ? `practice-highlights-${qid}-${writingId}` : null;
+  }
+
+  function loadStoredHighlights() {
+    const key = highlightStorageKey();
+    if (!key) return [];
     try {
-      const raw = sessionStorage.getItem(highlightStorageKey);
+      const raw = sessionStorage.getItem(key);
       const parsed = raw ? JSON.parse(raw) : [];
       return Array.isArray(parsed) ? parsed : [];
     } catch {
@@ -134,8 +139,25 @@
     }
   }
 
-  function saveSessionHighlights(highlights) {
-    sessionStorage.setItem(highlightStorageKey, JSON.stringify(highlights));
+  function saveStoredHighlights() {
+    const key = highlightStorageKey();
+    if (!key) return;
+    sessionStorage.setItem(key, JSON.stringify(sessionHighlights));
+  }
+
+  function refreshPromptHighlights() {
+    const promptEl = document.getElementById("prompt-text");
+    if (promptEl && plainPrompt) {
+      promptEl.innerHTML = renderPromptHtml(plainPrompt, sessionHighlights);
+    }
+  }
+
+  function clearPracticeHighlights() {
+    sessionHighlights = [];
+    const key = highlightStorageKey();
+    if (key) sessionStorage.removeItem(key);
+    sessionStorage.removeItem(`practice-highlights-${qid}`);
+    refreshPromptHighlights();
   }
 
   async function applyPromptHighlight() {
@@ -145,8 +167,8 @@
     const offsets = rangeToPlainOffsets(promptEl, range);
     if (!offsets) return;
     sessionHighlights = mergeHighlights(sessionHighlights, offsets);
-    saveSessionHighlights(sessionHighlights);
-    promptEl.innerHTML = renderPromptHtml(plainPrompt, sessionHighlights);
+    saveStoredHighlights();
+    refreshPromptHighlights();
     savedPromptRange = null;
     if (promptToolbar) promptToolbar.hidden = true;
     window.getSelection()?.removeAllRanges();
@@ -358,14 +380,15 @@
       ? `<figure class="task1-figure"><img src="${escapeHtml(question.image_url)}" alt="Chart" class="task1-chart"></figure>`
       : "";
     plainPrompt = question.prompt || "";
-    sessionHighlights = loadSessionHighlights();
+    sessionHighlights = [];
+    sessionStorage.removeItem(`practice-highlights-${qid}`);
     const promptInner = renderPromptHtml(plainPrompt, sessionHighlights);
     questionPane.innerHTML = `
       <span class="task-badge">${escapeHtml(question.task_type)} · ${mins} min exam time</span>
       <h2 class="question-title">${escapeHtml(question.title)}</h2>
       <div id="prompt-text" class="prompt-text">${promptInner}</div>
       ${imgHtml}
-      <p class="selection-hint">Select question text → Highlight (this tab only, not saved)</p>`;
+      <p class="selection-hint">Select question text → Highlight (this attempt only)</p>`;
     savedPromptRange = null;
     if (promptToolbar) promptToolbar.hidden = true;
     updateChartControl();
@@ -439,6 +462,8 @@
     if (w && w.id) {
       writingId = w.id;
       if (w.content) essay.value = w.content;
+      sessionHighlights = loadStoredHighlights();
+      refreshPromptHighlights();
       updateWordCount();
       saveStatus.textContent = "Draft loaded — click Start to continue timing";
     }
@@ -466,13 +491,17 @@
       body: JSON.stringify(body),
     });
     const data = await res.json();
-    if (!writingId && data.id) writingId = data.id;
+    if (!writingId && data.id) {
+      writingId = data.id;
+      saveStoredHighlights();
+    }
     saveStatus.textContent = finish ? "Saved" : "Saved " + new Date().toLocaleTimeString();
     return data;
   }
 
   function startSession() {
     if (started) return;
+    if (!writingId) clearPracticeHighlights();
     started = true;
     startTime = Date.now();
     lastParaTick = Date.now();
@@ -524,6 +553,7 @@
     essay.disabled = true;
     finishBtn.disabled = true;
     await saveDraft(true);
+    clearPracticeHighlights();
     showResults(elapsed);
   }
 
