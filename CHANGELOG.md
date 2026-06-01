@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.2
+
+- Fix admin user page stuck on "Loading…" (JS error handling, missing attempts fallback, cache bust)
+
 ## 2.0.1
 
 - Fix right-click word count on essay (selection backup, reliable context menus)

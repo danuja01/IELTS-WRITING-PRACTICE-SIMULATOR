@@ -20,6 +20,6 @@
     </section>
   </main>
   <script>window.ADMIN_USER_ID = {{ user_id }};</script>
-  <script src="{{ url_for('static', filename='js/admin_user.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/admin_user.js') }}?v={{ app_version }}"></script>
 </body>
 </html>
