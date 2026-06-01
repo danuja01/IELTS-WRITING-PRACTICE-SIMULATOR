@@ -21,6 +21,8 @@ from flask import (
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
+from backup import start_backup_scheduler
+
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.environ.get("IELTS_DB", os.path.join(APP_DIR, "data", "app.db"))
 DATA_DIR = os.path.dirname(DB_PATH)
@@ -165,6 +167,7 @@ def ensure_db():
 
 with app.app_context():
     init_db()
+    start_backup_scheduler(DB_PATH, DATA_DIR)
 
 
 @app.context_processor

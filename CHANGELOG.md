@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.0
+
+- Automatic weekly SQLite backup in `data/backups/` (keeps one latest file only)
+- Safe backup via SQLite `backup()` API while the app is running
+
 ## 1.2.0
 
 - Task 1: upload chart/diagram illustration image when adding a question

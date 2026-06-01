@@ -1,6 +1,6 @@
 # IELTS Writing Practice (lightweight)
 
-**Version 1.2.0** — see [CHANGELOG.md](CHANGELOG.md)
+**Version 1.3.0** — see [CHANGELOG.md](CHANGELOG.md)
 
 Minimal practice app for IELTS-style writing: split question/answer layout, word count, adjustable text size, 40-minute timer (turns red after 40 min but keeps running), simple login, and saved drafts.
 
@@ -39,6 +39,7 @@ Set `SECRET_KEY` in `docker-compose.yml`. Data persists in `./data/`.
 - **40 min timer** — countdown; at 0:00 turns red and shows overtime; writing never stops
 - **At finish** — total time, words at 40 min, cursor position at 40 min
 - **Auto-save** every 15 seconds
+- **Weekly DB backup** — one rolling copy in `data/backups/` (Docker: your appdata volume)
 
 ## Environment
 
@@ -47,3 +48,17 @@ Set `SECRET_KEY` in `docker-compose.yml`. Data persists in `./data/`.
 | `PORT`      | `5050`               |
 | `SECRET_KEY`| `change-me-in-production` |
 | `IELTS_DB`  | `./data/app.db`      |
+| `BACKUP_ENABLED` | `1`             |
+| `BACKUP_INTERVAL_DAYS` | `7`      |
+
+Backups on NAS: `appdata/ielts-writing/backups/app.db.latest.bak`
+
+## Restore from backup
+
+Stop the container, then:
+
+```bash
+cp /path/to/appdata/ielts-writing/backups/app.db.latest.bak /path/to/appdata/ielts-writing/app.db
+```
+
+Start the container again.
