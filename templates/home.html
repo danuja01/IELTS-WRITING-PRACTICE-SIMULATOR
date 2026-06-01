@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IELTS Writing Practice</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <h1>IELTS Writing Practice</h1>
+    <span class="user">{{ username }}</span>
+    <button type="button" class="secondary" id="logout-btn" style="border-color:#fff;color:#fff;background:transparent">Logout</button>
+  </header>
+  <main class="home-main">
+    <section class="panel">
+      <h2>Add question</h2>
+      <form id="add-question-form">
+        <label for="q-title">Title</label>
+        <input type="text" id="q-title" placeholder="e.g. Essay — Technology in education" required>
+        <label for="q-task">Task</label>
+        <select id="q-task">
+          <option value="task1">Task 1 (20 min)</option>
+          <option value="task2" selected>Task 2 (40 min)</option>
+        </select>
+        <label for="q-prompt">Question / prompt</label>
+        <textarea id="q-prompt" rows="6" placeholder="Paste the IELTS question here..." required></textarea>
+        <button type="submit">Save question</button>
+      </form>
+      <p class="msg" id="form-msg"></p>
+    </section>
+    <section class="panel">
+      <h2>Your questions</h2>
+      <ul class="q-list" id="question-list">
+        <li class="q-meta">Loading…</li>
+      </ul>
+    </section>
+    <section class="panel">
+      <h2>Recent finished writings</h2>
+      <ul class="q-list" id="history-list">
+        <li class="q-meta">Loading…</li>
+      </ul>
+    </section>
+  </main>
+  <script src="{{ url_for('static', filename='js/home.js') }}"></script>
+</body>
+</html>

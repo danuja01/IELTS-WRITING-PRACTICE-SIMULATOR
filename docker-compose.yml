@@ -1,0 +1,10 @@
+services:
+  ielts-writing:
+    build: .
+    ports:
+      - "5050:5050"
+    environment:
+      SECRET_KEY: change-this-on-your-nas
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

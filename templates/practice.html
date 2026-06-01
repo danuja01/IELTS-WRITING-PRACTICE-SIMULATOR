@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Writing — IELTS Practice</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="practice-shell">
+    <header class="practice-bar">
+      <span class="brand">IELTS Writing</span>
+      <div class="timer-block">
+        <div class="timer" id="timer-display">
+          <span id="timer-main">40:00</span>
+          <span class="timer-label" id="timer-label"> remaining</span>
+        </div>
+        <div class="timer" id="elapsed-display" style="font-size:0.85rem;font-weight:500">
+          <span id="elapsed-main">00:00</span>
+          <span class="timer-label"> elapsed</span>
+        </div>
+      </div>
+      <div class="word-count">Words: <span id="word-count">0</span></div>
+      <div class="editor-controls">
+        <label for="font-size">Text size</label>
+        <input type="range" id="font-size" min="14" max="28" value="18">
+        <label for="line-height">Line spacing</label>
+        <input type="range" id="line-height" min="140" max="220" value="160" step="5">
+      </div>
+      <div class="bar-spacer"></div>
+      <a href="{{ url_for('home') }}" class="btn secondary">← Back</a>
+      <button type="button" id="start-btn">Start</button>
+      <button type="button" id="finish-btn" disabled>Finish</button>
+    </header>
+    <div class="split">
+      <section class="pane">
+        <div class="pane-head">Question</div>
+        <div class="question-body" id="question-pane">
+          <p class="q-meta">Loading question…</p>
+        </div>
+      </section>
+      <section class="pane write-pane">
+        <div class="pane-head">Your answer</div>
+        <textarea id="essay" placeholder="Click Start, then begin writing…" disabled spellcheck="true"></textarea>
+        <div class="write-footer">
+          <span id="save-status">Not started</span>
+          <span>Auto-saves every 15s</span>
+        </div>
+      </section>
+    </div>
+  </div>
+  <div class="modal-backdrop" id="result-modal">
+    <div class="modal">
+      <h3>Session complete</h3>
+      <div class="stat-grid" id="result-stats"></div>
+      <button type="button" id="modal-home">Back to questions</button>
+    </div>
+  </div>
+  <script>
+    window.QUESTION_ID = {{ question_id }};
+  </script>
+  <script src="{{ url_for('static', filename='js/practice.js') }}"></script>
+</body>
+</html>

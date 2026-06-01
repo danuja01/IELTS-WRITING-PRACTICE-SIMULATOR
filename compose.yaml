@@ -1,0 +1,18 @@
+# Dockge / Docker Compose stack — IELTS Writing Practice
+# Copy this entire project folder to your NAS (e.g. /opt/stacks/ielts-writing)
+
+services:
+  ielts-writing:
+    container_name: ielts-writing
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5050:5050"   # change left side if 5050 is taken, e.g. "8080:5050"
+    environment:
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in Dockge env or .env file}
+      PORT: "5050"
+      IELTS_DB: /app/data/app.db
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
