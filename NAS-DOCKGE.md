@@ -1,5 +1,31 @@
 # Host on NAS with Dockge
 
+Repo: https://github.com/danuja01/IELTS-WRITING-PRACTICE-SIMULATOR
+
+## No clone — paste YAML only (recommended)
+
+### Option A — Pull image only (lightest on NAS)
+
+1. Push `.github/workflows/docker-publish.yml` to GitHub (included in repo).
+2. Wait for **Actions** to finish → image on `ghcr.io`.
+3. GitHub → **Packages** → open the package → **Package settings** → **Change visibility** → **Public**.
+4. Create appdata folder (once):  
+   `mkdir -p /srv/dev-disk-by-uuid-9ac22f70-05c6-442f-993b-0d9ca1ae5988/appdata/ielts-writing`
+5. Dockge → **New stack** → paste `docker-compose.dockge-image.yml` → set `SECRET_KEY` → **Deploy**.
+
+Updates: push to `main` → Actions rebuilds → in Dockge click **Pull & redeploy** (or restart stack with `pull_policy: always`).
+
+### Option B — Build from GitHub URL (no clone, builds on NAS)
+
+1. Create appdata folder (same as above).
+2. Dockge → **New stack** → paste `docker-compose.dockge.yml` → set `SECRET_KEY` → **Deploy**.
+
+Docker downloads the repo from GitHub during build. Uses more NAS CPU/RAM on first deploy than Option A.
+
+---
+
+## Manual clone (alternative)
+
 Paths used on your server:
 
 | Purpose | Path |

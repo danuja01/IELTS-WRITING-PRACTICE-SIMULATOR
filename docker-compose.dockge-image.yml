@@ -1,0 +1,20 @@
+# Best for NAS: no build on the NAS — only pulls a ready image from GitHub.
+# One-time: push .github/workflows/docker-publish.yml to your repo and wait for
+# the Actions build to finish. Then set the package public in GitHub → Packages.
+#
+# Paste this into Dockge. Update image tag after you change the workflow name if needed.
+
+services:
+  ielts-writing:
+    image: ghcr.io/danuja01/ielts-writing-practice-simulator:latest
+    container_name: ielts-writing
+    ports:
+      - "5050:5050"
+    environment:
+      SECRET_KEY: "CHANGE-ME-use-openssl-rand-hex-32"
+      IELTS_DB: /app/data/app.db
+      PORT: "5050"
+    volumes:
+      - /srv/dev-disk-by-uuid-9ac22f70-05c6-442f-993b-0d9ca1ae5988/appdata/ielts-writing:/app/data
+    restart: unless-stopped
+    pull_policy: always

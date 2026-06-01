@@ -1,0 +1,33 @@
+# Builds and pushes image to GitHub Container Registry on every push to main.
+# After first run: GitHub → Packages → ielts-writing-practice-simulator → Package settings → Public
+
+name: Publish Docker image
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/danuja01/ielts-writing-practice-simulator:latest
+            ghcr.io/danuja01/ielts-writing-practice-simulator:${{ github.sha }}
