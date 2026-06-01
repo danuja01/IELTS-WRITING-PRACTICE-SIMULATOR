@@ -61,6 +61,12 @@ a {
   font-size: 0.85rem;
 }
 
+.topbar .version {
+  font-size: 0.75rem;
+  opacity: 0.75;
+  margin-left: 0.5rem;
+}
+
 label {
   display: block;
   font-size: 0.8rem;

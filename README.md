@@ -1,5 +1,7 @@
 # IELTS Writing Practice (lightweight)
 
+**Version 1.1.0** — see [CHANGELOG.md](CHANGELOG.md)
+
 Minimal practice app for IELTS-style writing: split question/answer layout, word count, adjustable text size, 40-minute timer (turns red after 40 min but keeps running), simple login, and saved drafts.
 
 **Stack:** Python Flask + SQLite + vanilla HTML/CSS/JS (no Node build, low RAM — typically ~30–50 MB).
@@ -15,7 +17,9 @@ export SECRET_KEY="your-secret-key"
 python app.py
 ```
 
-Open http://localhost:5050 — register a user, add a question, click **Start**.
+Open http://localhost:5050
+
+**Docker / NAS** uses [Gunicorn](https://gunicorn.org/) (production WSGI server), not Flask’s dev server. — register a user, add a question, click **Start**.
 
 ## Run on NAS (Docker)
 

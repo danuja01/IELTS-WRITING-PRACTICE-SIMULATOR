@@ -20,6 +20,17 @@ from werkzeug.security import check_password_hash, generate_password_hash
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.environ.get("IELTS_DB", os.path.join(APP_DIR, "data", "app.db"))
 
+
+def _load_version() -> str:
+    try:
+        with open(os.path.join(APP_DIR, "VERSION"), encoding="utf-8") as f:
+            return f.read().strip()
+    except OSError:
+        return os.environ.get("APP_VERSION", "dev")
+
+
+__version__ = _load_version()
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "change-me-in-production")
 app.config["SESSION_COOKIE_HTTPONLY"] = True
@@ -103,6 +114,16 @@ def ensure_db():
 
 with app.app_context():
     init_db()
+
+
+@app.context_processor
+def inject_version():
+    return {"app_version": __version__}
+
+
+@app.route("/api/version")
+def api_version():
+    return jsonify({"version": __version__})
 
 
 # --- Pages ---
@@ -337,6 +358,7 @@ def save_writing():
 
 
 if __name__ == "__main__":
+    # Local dev only — Docker/production uses gunicorn (see Dockerfile)
     port = int(os.environ.get("PORT", 5050))
     debug = os.environ.get("FLASK_DEBUG", "").lower() in ("1", "true")
     app.run(host="0.0.0.0", port=port, debug=debug)
