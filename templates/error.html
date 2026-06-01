@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IELTS Writing — Error</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ app_version }}">
+</head>
+<body>
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <h1>Temporarily unavailable</h1>
+      <p class="sub">{{ message }}</p>
+      <p class="q-meta">Error {{ code }}</p>
+      <p><a href="javascript:location.reload()" class="btn">Refresh</a>
+         <a href="javascript:history.back()" class="btn secondary">Go back</a></p>
+    </div>
+  </div>
+</body>
+</html>

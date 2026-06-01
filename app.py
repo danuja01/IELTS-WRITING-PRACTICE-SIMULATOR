@@ -26,6 +26,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
 from backup import start_backup_scheduler
+from db_util import connect_sqlite
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.environ.get("IELTS_DB", os.path.join(APP_DIR, "data", "app.db"))
@@ -58,10 +59,7 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 def get_db():
     if "db" not in g:
         os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-        g.db = sqlite3.connect(DB_PATH)
-        g.db.row_factory = sqlite3.Row
-        g.db.execute("PRAGMA journal_mode=WAL")
-        g.db.execute("PRAGMA foreign_keys=ON")
+        g.db = connect_sqlite(DB_PATH)
     return g.db
 
 
@@ -110,7 +108,7 @@ def _migrate(db):
 
 def init_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    with closing(sqlite3.connect(DB_PATH)) as db:
+    with closing(connect_sqlite(DB_PATH)) as db:
         db.executescript(
             """
             CREATE TABLE IF NOT EXISTS users (
@@ -327,11 +325,11 @@ def admin_required(f):
 
 @app.before_request
 def before_request():
-    get_db()
     path = request.path
-
     if path.startswith("/static/"):
         return None
+
+    get_db()
 
     if not has_admin():
         if path not in SETUP_WHITELIST:
@@ -360,6 +358,28 @@ def before_request():
             return redirect(url_for("home"))
 
     return None
+
+
+@app.errorhandler(sqlite3.OperationalError)
+def handle_sqlite_operational_error(exc):
+    app.logger.warning("SQLite operational error: %s", exc)
+    msg = str(exc).lower()
+    if "locked" in msg or "busy" in msg:
+        body = {"error": "Database busy — please refresh in a moment."}
+        if request.path.startswith("/api/"):
+            return jsonify(body), 503
+        return render_template("error.html", message=body["error"], code=503), 503
+    if request.path.startswith("/api/"):
+        return jsonify({"error": "Database error"}), 500
+    return render_template("error.html", message="Database error.", code=500), 500
+
+
+@app.errorhandler(500)
+def handle_internal_error(exc):
+    app.logger.exception("Unhandled server error: %s", exc)
+    if request.path.startswith("/api/"):
+        return jsonify({"error": "Internal server error"}), 500
+    return render_template("error.html", message="Something went wrong. Try refreshing.", code=500), 500
 
 
 with app.app_context():

@@ -231,8 +231,21 @@
     bindQuestionActions(allListRoot);
   }
 
-  async function loadQuestions() {
+  async function loadQuestions(retry = 0) {
     const res = await fetch("/api/questions");
+    if (res.status === 503 && retry < 3) {
+      await new Promise((r) => setTimeout(r, 500 * (retry + 1)));
+      return loadQuestions(retry + 1);
+    }
+    if (res.status === 401) {
+      window.location.href = "/login";
+      return;
+    }
+    if (!res.ok) {
+      myListRoot.innerHTML = '<p class="q-meta">Could not load questions. Refresh the page.</p>';
+      allListRoot.innerHTML = myListRoot.innerHTML;
+      return;
+    }
     questions = await res.json();
     renderQuestions();
   }

@@ -17,6 +17,8 @@ services:
       PORT: "5050"
       BACKUP_ENABLED: "1"
       BACKUP_INTERVAL_DAYS: "7"
+      # If appdata is on NFS/network share, uncomment:
+      # SQLITE_JOURNAL_MODE: "DELETE"
     volumes:
       - /srv/dev-disk-by-uuid-9ac22f70-05c6-442f-993b-0d9ca1ae5988/appdata/ielts-writing:/app/data
     restart: unless-stopped

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.10
+
+- Fix multi-browser / multi-user 500 errors: SQLite busy timeout, single request thread, safer backups
+- Friendly error page when database is busy (auto-retry on home page)
+- Optional `SQLITE_JOURNAL_MODE=DELETE` for NAS network storage (see compose file)
+
 ## 2.0.9
 
 - **Copy to My** on shared questions in All — duplicates question (and chart image) into your My questions list

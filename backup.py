@@ -7,6 +7,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+from db_util import connect_sqlite
+
 log = logging.getLogger(__name__)
 
 BACKUP_FILENAME = "app.db.latest.bak"
@@ -62,9 +64,9 @@ def run_backup(db_path: str, data_dir: str) -> bool:
     try:
         if tmp.exists():
             tmp.unlink()
-        src = sqlite3.connect(str(db_file))
+        src = connect_sqlite(str(db_file))
         try:
-            dst = sqlite3.connect(str(tmp))
+            dst = connect_sqlite(str(tmp), row_factory=None)
             try:
                 src.backup(dst)
             finally:
@@ -76,6 +78,11 @@ def run_backup(db_path: str, data_dir: str) -> bool:
         ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
         log.info("database backup saved: %s (%s)", dest, ts)
         return True
+    except sqlite3.OperationalError as exc:
+        log.warning("database backup skipped (database busy): %s", exc)
+        if tmp.exists():
+            tmp.unlink(missing_ok=True)
+        return False
     except Exception:
         log.exception("database backup failed")
         if tmp.exists():
@@ -97,6 +104,8 @@ def start_backup_scheduler(db_path: str, data_dir: str) -> None:
         return
 
     def loop() -> None:
+        # Defer first backup so startup traffic is not blocked.
+        time.sleep(int(os.environ.get("BACKUP_STARTUP_DELAY", "120")))
         while True:
             try:
                 maybe_run_backup(db_path, data_dir)
@@ -105,4 +114,3 @@ def start_backup_scheduler(db_path: str, data_dir: str) -> None:
             time.sleep(3600)
 
     threading.Thread(target=loop, name="db-backup", daemon=True).start()
-    maybe_run_backup(db_path, data_dir)
