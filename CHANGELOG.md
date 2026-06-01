@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.11
+
+- Fix 500 on home page: login redirect used wrong route name (`login` vs `login_page`)
+
 ## 2.0.10
 
 - Fix multi-browser / multi-user 500 errors: SQLite busy timeout, single request thread, safer backups

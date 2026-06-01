@@ -443,7 +443,7 @@ def api_setup_admin():
     return jsonify({"ok": True, "redirect": url_for("admin_home")})
 
 
-@app.route("/login", methods=["GET"])
+@app.route("/login", methods=["GET"], endpoint="login")
 def login_page():
     if not has_admin():
         return redirect(url_for("setup_admin"))
