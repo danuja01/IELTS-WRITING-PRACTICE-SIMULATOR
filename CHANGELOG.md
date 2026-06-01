@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.12
+
+- Question highlights are session-only (browser tab); not saved to DB or visible to others
+
 ## 2.0.11
 
 - Fix 500 on home page: login redirect used wrong route name (`login` vs `login_page`)

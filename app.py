@@ -233,11 +233,9 @@ def _apply_highlights(text, highlights):
 
 def _question_json(row, for_user_id=None):
     d = dict(row)
-    uid = for_user_id if for_user_id is not None else d.get("user_id")
     d["has_image"] = bool(d.get("image_path"))
     d["image_url"] = url_for("question_image", qid=d["id"]) if d["has_image"] else None
-    d["highlights"] = _parse_highlights(d.get("prompt_highlights"))
-    d["prompt_html"] = _apply_highlights(d.get("prompt") or "", d["highlights"])
+    d.pop("prompt_highlights", None)
     if for_user_id is not None:
         d["is_mine"] = d.get("user_id") == for_user_id
     return d
@@ -725,15 +723,14 @@ def copy_question(qid):
 
     cur = db.execute(
         """INSERT INTO questions
-           (user_id, category_id, title, prompt, task_type, prompt_highlights, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+           (user_id, category_id, title, prompt, task_type, created_at)
+           VALUES (?, ?, ?, ?, ?, ?)""",
         (
             uid,
             category_id,
             source["title"],
             source["prompt"],
             source["task_type"],
-            source["prompt_highlights"],
             now_iso(),
         ),
     )
@@ -843,37 +840,6 @@ def get_question(qid):
     if not row:
         return jsonify({"error": "not found"}), 404
     return jsonify(_question_json(row, for_user_id=session["user_id"]))
-
-
-@app.route("/api/questions/<int:qid>/highlights", methods=["PUT"])
-@student_required
-def update_highlights(qid):
-    data = request.get_json(silent=True) or {}
-    highlights = data.get("highlights", [])
-    if not isinstance(highlights, list):
-        return jsonify({"error": "highlights must be a list"}), 400
-    db = get_db()
-    row = db.execute(
-        "SELECT prompt FROM questions WHERE id = ?",
-        (qid,),
-    ).fetchone()
-    if not row:
-        return jsonify({"error": "not found"}), 404
-    prompt_len = len(row["prompt"] or "")
-    clean = []
-    for h in highlights:
-        if not isinstance(h, dict):
-            continue
-        start, end = int(h.get("start", 0)), int(h.get("end", 0))
-        if 0 <= start < end <= prompt_len:
-            clean.append({"start": start, "end": end})
-    db.execute(
-        "UPDATE questions SET prompt_highlights = ? WHERE id = ?",
-        (json.dumps(clean), qid),
-    )
-    db.commit()
-    out = db.execute("SELECT * FROM questions WHERE id = ?", (qid,)).fetchone()
-    return jsonify(_question_json(out))
 
 
 @app.route("/api/questions/<int:qid>/image")

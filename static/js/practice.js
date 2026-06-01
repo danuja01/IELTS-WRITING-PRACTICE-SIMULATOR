@@ -37,6 +37,8 @@
   let lastParaTick = null;
   let activeParaIndex = 0;
   let plainPrompt = "";
+  let sessionHighlights = [];
+  const highlightStorageKey = `practice-highlights-${qid}`;
   let savedEssaySel = { start: 0, end: 0 };
   let savedPromptRange = null;
 
@@ -122,19 +124,32 @@
     }
   }
 
+  function loadSessionHighlights() {
+    try {
+      const raw = sessionStorage.getItem(highlightStorageKey);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveSessionHighlights(highlights) {
+    sessionStorage.setItem(highlightStorageKey, JSON.stringify(highlights));
+  }
+
   async function applyPromptHighlight() {
     const range = promptMenu._range || savedPromptRange;
     const promptEl = document.getElementById("prompt-text");
     if (!range || !plainPrompt || !promptEl) return;
     const offsets = rangeToPlainOffsets(promptEl, range);
     if (!offsets) return;
-    const highlights = mergeHighlights(question.highlights || [], offsets);
-    question.highlights = highlights;
-    promptEl.innerHTML = applyHighlightsHtml(plainPrompt, highlights);
+    sessionHighlights = mergeHighlights(sessionHighlights, offsets);
+    saveSessionHighlights(sessionHighlights);
+    promptEl.innerHTML = renderPromptHtml(plainPrompt, sessionHighlights);
     savedPromptRange = null;
     if (promptToolbar) promptToolbar.hidden = true;
     window.getSelection()?.removeAllRanges();
-    await saveHighlights(highlights);
   }
 
   function rangeToPlainOffsets(container, range) {
@@ -151,6 +166,13 @@
     }
     if (start == null || end == null || start >= end) return null;
     return { start, end };
+  }
+
+  function renderPromptHtml(text, highlights) {
+    if (!highlights || !highlights.length) {
+      return `<strong class="prompt-strong">${escapeHtml(text)}</strong>`;
+    }
+    return applyHighlightsHtml(text, highlights);
   }
 
   function applyHighlightsHtml(text, highlights) {
@@ -330,29 +352,20 @@
     return res;
   }
 
-  async function saveHighlights(highlights) {
-    await api(`/api/questions/${qid}/highlights`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ highlights }),
-    });
-  }
-
   function renderPrompt() {
     const mins = question.task_type === "task1" ? 20 : 40;
     const imgHtml = question.has_image
       ? `<figure class="task1-figure"><img src="${escapeHtml(question.image_url)}" alt="Chart" class="task1-chart"></figure>`
       : "";
-    const promptInner = question.prompt_html
-      ? question.prompt_html
-      : `<strong class="prompt-strong">${escapeHtml(question.prompt)}</strong>`;
+    plainPrompt = question.prompt || "";
+    sessionHighlights = loadSessionHighlights();
+    const promptInner = renderPromptHtml(plainPrompt, sessionHighlights);
     questionPane.innerHTML = `
       <span class="task-badge">${escapeHtml(question.task_type)} · ${mins} min exam time</span>
       <h2 class="question-title">${escapeHtml(question.title)}</h2>
       <div id="prompt-text" class="prompt-text">${promptInner}</div>
       ${imgHtml}
-      <p class="selection-hint">Select question text → click Highlight or right-click</p>`;
-    plainPrompt = question.prompt || "";
+      <p class="selection-hint">Select question text → Highlight (this tab only, not saved)</p>`;
     savedPromptRange = null;
     if (promptToolbar) promptToolbar.hidden = true;
     updateChartControl();
