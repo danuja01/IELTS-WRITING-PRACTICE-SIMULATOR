@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.9
+
+- **Copy to My** on shared questions in All — duplicates question (and chart image) into your My questions list
+
 ## 2.0.8
 
 - Home accordions: opening one section (My questions / All) automatically closes the other

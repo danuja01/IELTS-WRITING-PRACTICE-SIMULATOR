@@ -111,6 +111,10 @@
     return items
       .map((q) => {
         const ownerLine = showOwner && !q.is_mine ? ` · by ${esc(q.owner_username || "unknown")}` : "";
+        const copyBtn =
+          showOwner && !q.is_mine
+            ? `<button type="button" class="secondary copy-to-my" data-copy="${q.id}">Copy to My</button>`
+            : "";
         const manageActions = q.is_mine
           ? `
                 <select data-move="${q.id}" class="move-cat" title="Move to another category">
@@ -130,6 +134,7 @@
                 <div class="q-meta">${q.has_image ? "Chart · " : ""}${fmtDate(q.created_at)}${ownerLine}</div>
               </div>
               <div class="actions">
+                ${copyBtn}
                 ${manageActions}
                 <a class="btn" href="/practice/${q.id}">Start</a>
               </div>
@@ -195,6 +200,23 @@
           body: JSON.stringify({ category_id: categoryId }),
         });
         loadQuestions();
+      });
+    });
+    root.querySelectorAll("[data-copy]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        btn.disabled = true;
+        const res = await fetch(`/api/questions/${btn.dataset.copy}/copy`, { method: "POST" });
+        const data = await res.json().catch(() => ({}));
+        btn.disabled = false;
+        if (!res.ok) {
+          alert(data.error || "Could not copy question");
+          return;
+        }
+        await loadQuestions();
+        const myAccordion = document.querySelector('.question-accordions .accordion:first-of-type');
+        const allAccordion = document.querySelector('.question-accordions .accordion:last-of-type');
+        if (myAccordion) myAccordion.setAttribute("open", "");
+        if (allAccordion) allAccordion.removeAttribute("open");
       });
     });
   }

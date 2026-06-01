@@ -3,6 +3,7 @@ import json
 import os
 import re
 import secrets
+import shutil
 import sqlite3
 from contextlib import closing
 from datetime import datetime, timezone
@@ -173,6 +174,22 @@ def _save_question_image(file_storage, user_id: int, question_id: int) -> str:
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     with open(dest, "wb") as f:
         f.write(raw)
+    return rel
+
+
+def _copy_question_image(source_rel, user_id: int, question_id: int) -> str:
+    if not source_rel:
+        return ""
+    src = os.path.join(UPLOAD_DIR, source_rel)
+    if not os.path.isfile(src):
+        return ""
+    ext = Path(source_rel).suffix.lower()
+    if ext not in ALLOWED_IMAGE_EXT:
+        return ""
+    rel = f"{user_id}/{question_id}{ext}"
+    dest = os.path.join(UPLOAD_DIR, rel)
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    shutil.copy2(src, dest)
     return rel
 
 
@@ -658,6 +675,69 @@ def move_question(qid):
     )
     db.commit()
     return jsonify({"ok": True})
+
+
+@app.route("/api/questions/<int:qid>/copy", methods=["POST"])
+@student_required
+def copy_question(qid):
+    uid = session["user_id"]
+    db = get_db()
+    source = db.execute(
+        """SELECT q.*, c.name AS category_name
+           FROM questions q
+           LEFT JOIN categories c ON c.id = q.category_id
+           WHERE q.id = ?""",
+        (qid,),
+    ).fetchone()
+    if not source:
+        return jsonify({"error": "not found"}), 404
+    if source["user_id"] == uid:
+        return jsonify({"error": "already in My questions"}), 400
+
+    category_id = None
+    if source["category_name"]:
+        mine_cat = db.execute(
+            "SELECT id FROM categories WHERE user_id = ? AND name = ?",
+            (uid, source["category_name"]),
+        ).fetchone()
+        if mine_cat:
+            category_id = mine_cat["id"]
+
+    cur = db.execute(
+        """INSERT INTO questions
+           (user_id, category_id, title, prompt, task_type, prompt_highlights, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (
+            uid,
+            category_id,
+            source["title"],
+            source["prompt"],
+            source["task_type"],
+            source["prompt_highlights"],
+            now_iso(),
+        ),
+    )
+    db.commit()
+    new_id = cur.lastrowid
+
+    if source["image_path"]:
+        copied = _copy_question_image(source["image_path"], uid, new_id)
+        if copied:
+            db.execute(
+                "UPDATE questions SET image_path = ? WHERE id = ?",
+                (copied, new_id),
+            )
+            db.commit()
+
+    row = db.execute(
+        """SELECT q.*, c.name AS category_name, u.username AS owner_username
+           FROM questions q
+           LEFT JOIN categories c ON c.id = q.category_id
+           JOIN users u ON u.id = q.user_id
+           WHERE q.id = ?""",
+        (new_id,),
+    ).fetchone()
+    return jsonify(_question_json(row, for_user_id=uid)), 201
 
 
 # --- Questions API ---
