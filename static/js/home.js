@@ -123,9 +123,10 @@
                 <div class="q-meta">${q.task_type.toUpperCase()}${q.has_image ? " · chart" : ""} · ${fmtDate(q.created_at)}</div>
               </div>
               <div class="actions">
-                <select data-move="${q.id}" class="move-cat" title="Move to category">
-                  <option value="">Move…</option>
-                  ${categories.map((c) => `<option value="${c.id}"${c.id === q.category_id ? " selected" : ""}>${esc(c.name)}</option>`).join("")}
+                <select data-move="${q.id}" class="move-cat" title="Move to another category">
+                  <option value="">Move to…</option>
+                  ${categories.filter((c) => c.id !== q.category_id).map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join("")}
+                  ${q.category_id ? '<option value="0">Uncategorized</option>' : ""}
                 </select>
                 <a class="btn" href="/practice/${q.id}">Start</a>
                 <button type="button" class="danger" data-del="${q.id}">Delete</button>
@@ -150,10 +151,11 @@
         const qid = sel.dataset.move;
         const val = sel.value;
         if (!val) return;
+        const categoryId = val === "0" ? null : parseInt(val, 10);
         await fetch(`/api/questions/${qid}/move`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ category_id: parseInt(val, 10) }),
+          body: JSON.stringify({ category_id: categoryId }),
         });
         loadQuestions();
       });
