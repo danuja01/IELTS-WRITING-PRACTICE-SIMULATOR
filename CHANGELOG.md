@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.5
+
+- Question prompt visibly bold (`strong` + CSS cache bust)
+- Highlight toolbar button when question text is selected (works without right-click)
+- Improved question right-click highlight on Chrome/Mac
+
 ## 2.0.4
 
 - Fix right-click word count on Mac (capture selection before native menu opens)

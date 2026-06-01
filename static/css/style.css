@@ -552,13 +552,43 @@ button:disabled {
   font-weight: 700;
 }
 
-.prompt-text {
-  font-size: 1.15rem;
+.question-body .prompt-text,
+.question-body .prompt-text .prompt-strong,
+.question-body .prompt-text strong {
+  font-size: 1.2rem;
   font-weight: 700;
-  line-height: 1.6;
+  line-height: 1.65;
   color: var(--text);
+}
+
+.prompt-text {
   white-space: pre-wrap;
   user-select: text;
+  -webkit-user-select: text;
+}
+
+.prompt-toolbar {
+  padding: 0.35rem 0.75rem;
+  background: #fff8cc;
+  border-top: 1px solid #e6d96a;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.prompt-toolbar[hidden] {
+  display: none !important;
+}
+
+.prompt-toolbar button {
+  margin: 0;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.65rem;
+  background: #fff566;
+  color: var(--text);
+  border: 1px solid #e6d96a;
+  cursor: pointer;
+  font-weight: 600;
 }
 
 .selection-hint {

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Writing — IELTS Practice</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ app_version }}">
 </head>
 <body>
   <div class="practice-shell">
@@ -37,6 +37,9 @@
         <div class="pane-head">Question</div>
         <div class="question-body" id="question-pane">
           <p class="q-meta">Loading question…</p>
+        </div>
+        <div id="prompt-toolbar" class="prompt-toolbar" hidden>
+          <button type="button" id="prompt-highlight-btn">Highlight yellow</button>
         </div>
       </section>
       <section class="pane write-pane">

@@ -19,6 +19,8 @@
   const essayMenu = document.getElementById("essay-context-menu");
   const promptMenu = document.getElementById("prompt-context-menu");
   const selWordEl = document.getElementById("sel-word-count");
+  const promptToolbar = document.getElementById("prompt-toolbar");
+  const promptHighlightBtn = document.getElementById("prompt-highlight-btn");
 
   let question = null;
   let writingId = null;
@@ -86,20 +88,51 @@
   }
 
   function showPromptHighlightMenu(clientX, clientY) {
-    const sel = window.getSelection();
-    let range = null;
-    if (sel && !sel.isCollapsed) {
-      range = sel.getRangeAt(0);
-    } else if (savedPromptRange) {
-      range = savedPromptRange;
-    }
-    if (!range) return false;
     const promptEl = document.getElementById("prompt-text");
-    if (!promptEl || !promptEl.contains(range.commonAncestorContainer)) return false;
+    if (!promptEl) return false;
+
+    const sel = window.getSelection();
+    let range = savedPromptRange;
+    if (sel && !sel.isCollapsed && promptEl.contains(sel.anchorNode)) {
+      range = sel.getRangeAt(0).cloneRange();
+      savedPromptRange = range.cloneRange();
+    }
+    if (!range || !promptEl.contains(range.commonAncestorContainer)) return false;
+
     promptMenu._range = range.cloneRange();
-    savedPromptRange = range.cloneRange();
     openMenu(promptMenu, clientX, clientY);
     return true;
+  }
+
+  function updatePromptToolbar() {
+    if (!promptToolbar) return;
+    const promptEl = document.getElementById("prompt-text");
+    if (!promptEl) {
+      promptToolbar.hidden = true;
+      return;
+    }
+    const sel = window.getSelection();
+    if (sel && !sel.isCollapsed && promptEl.contains(sel.anchorNode)) {
+      savedPromptRange = sel.getRangeAt(0).cloneRange();
+      promptToolbar.hidden = false;
+    } else {
+      promptToolbar.hidden = true;
+    }
+  }
+
+  async function applyPromptHighlight() {
+    const range = promptMenu._range || savedPromptRange;
+    const promptEl = document.getElementById("prompt-text");
+    if (!range || !plainPrompt || !promptEl) return;
+    const offsets = rangeToPlainOffsets(promptEl, range);
+    if (!offsets) return;
+    const highlights = mergeHighlights(question.highlights || [], offsets);
+    question.highlights = highlights;
+    promptEl.innerHTML = applyHighlightsHtml(plainPrompt, highlights);
+    savedPromptRange = null;
+    if (promptToolbar) promptToolbar.hidden = true;
+    window.getSelection()?.removeAllRanges();
+    await saveHighlights(highlights);
   }
 
   function rangeToPlainOffsets(container, range) {
@@ -288,13 +321,18 @@
     const imgHtml = question.has_image
       ? `<figure class="task1-figure"><img src="${escapeHtml(question.image_url)}" alt="Chart" class="task1-chart"></figure>`
       : "";
+    const promptInner = question.prompt_html
+      ? question.prompt_html
+      : `<strong class="prompt-strong">${escapeHtml(question.prompt)}</strong>`;
     questionPane.innerHTML = `
       <span class="task-badge">${escapeHtml(question.task_type)} · ${mins} min exam time</span>
       <h2 class="question-title">${escapeHtml(question.title)}</h2>
       ${imgHtml}
-      <div id="prompt-text" class="prompt-text">${question.prompt_html || escapeHtml(question.prompt)}</div>
-      <p class="selection-hint">Select text → right-click to highlight (question) or see word count (answer)</p>`;
+      <div id="prompt-text" class="prompt-text">${promptInner}</div>
+      <p class="selection-hint">Select question text → click Highlight or right-click</p>`;
     plainPrompt = question.prompt || "";
+    savedPromptRange = null;
+    if (promptToolbar) promptToolbar.hidden = true;
   }
 
   async function loadQuestion() {
@@ -310,14 +348,22 @@
     renderPrompt();
   }
 
-  questionPane.addEventListener("mouseup", (e) => {
-    const promptEl = e.target.closest("#prompt-text");
-    if (!promptEl) return;
-    const sel = window.getSelection();
-    if (sel && !sel.isCollapsed && promptEl.contains(sel.anchorNode)) {
-      savedPromptRange = sel.getRangeAt(0).cloneRange();
-    }
-  });
+  questionPane.addEventListener("mouseup", () => updatePromptToolbar());
+  questionPane.addEventListener("keyup", () => updatePromptToolbar());
+
+  questionPane.addEventListener(
+    "mousedown",
+    (e) => {
+      if (e.button !== 2) return;
+      const promptEl = e.target.closest("#prompt-text");
+      if (!promptEl) return;
+      const sel = window.getSelection();
+      if (sel && !sel.isCollapsed && promptEl.contains(sel.anchorNode)) {
+        savedPromptRange = sel.getRangeAt(0).cloneRange();
+      }
+    },
+    true
+  );
 
   questionPane.addEventListener(
     "contextmenu",
@@ -326,26 +372,29 @@
       if (!promptEl) return;
       if (showPromptHighlightMenu(e.clientX, e.clientY)) {
         e.preventDefault();
-        e.stopPropagation();
+        e.stopImmediatePropagation();
       }
     },
     true
   );
+
+  document.addEventListener("selectionchange", () => {
+    if (document.getElementById("prompt-text")) updatePromptToolbar();
+  });
+
+  if (promptHighlightBtn) {
+    promptHighlightBtn.addEventListener("click", async () => {
+      promptMenu._range = savedPromptRange;
+      await applyPromptHighlight();
+    });
+  }
 
   promptMenu.addEventListener("click", (e) => e.stopPropagation());
 
   promptMenu.querySelector("[data-action=highlight]").addEventListener("click", async (e) => {
     e.stopPropagation();
     closeMenus();
-    const range = promptMenu._range;
-    const promptEl = document.getElementById("prompt-text");
-    if (!range || !plainPrompt || !promptEl) return;
-    const offsets = rangeToPlainOffsets(promptEl, range);
-    if (!offsets) return;
-    const highlights = mergeHighlights(question.highlights || [], offsets);
-    question.highlights = highlights;
-    promptEl.innerHTML = applyHighlightsHtml(plainPrompt, highlights);
-    await saveHighlights(highlights);
+    await applyPromptHighlight();
   });
 
   async function loadDraft() {
