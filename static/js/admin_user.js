@@ -1,8 +1,7 @@
 (function () {
   const uid = window.ADMIN_USER_ID;
   const panel = document.getElementById("user-panel");
-  const groupsEl = document.getElementById("writing-groups");
-  const qList = document.getElementById("question-list");
+  const cardsEl = document.getElementById("question-cards");
 
   document.getElementById("logout-btn").addEventListener("click", async () => {
     await fetch("/api/logout", { method: "POST" });
@@ -21,6 +20,14 @@
     } catch {
       return iso || "";
     }
+  }
+
+  function fmtMs(ms) {
+    if (ms == null) return "—";
+    const sec = Math.floor(ms / 1000);
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}m ${s}s`;
   }
 
   async function load() {
@@ -74,34 +81,48 @@
       }
     });
 
-    if (!data.writing_groups.length) {
-      groupsEl.innerHTML = '<li class="q-meta">No finished writings yet.</li>';
-    } else {
-      groupsEl.innerHTML = data.writing_groups
-        .map(
-          (g) => `
-        <li>
-          <div>
-            <strong>${esc(g.title)}</strong>
-            <div class="q-meta">${g.attempt_count} attempt(s) · last ${fmtDate(g.last_finished)}</div>
-          </div>
-          <a class="btn secondary" href="/admin/users/${uid}/history/${g.question_id}">View attempts</a>
-        </li>`
-        )
-        .join("");
+    if (!data.questions.length) {
+      cardsEl.innerHTML = '<p class="q-meta">No questions yet.</p>';
+      return;
     }
 
-    qList.innerHTML = data.questions.length
-      ? data.questions
-          .map(
-            (q) => `
-        <li>
-          <div><strong>${esc(q.title)}</strong> <span class="q-meta">${q.task_type}</span></div>
-          <a class="btn" href="/admin/questions/${q.id}/edit">Edit</a>
-        </li>`
-          )
-          .join("")
-      : '<li class="q-meta">No questions.</li>';
+    cardsEl.innerHTML = data.questions
+      .map((q) => {
+        const img = q.has_image
+          ? `<figure class="task1-figure"><img src="${esc(q.image_url)}" alt="Chart" class="task1-chart admin-q-thumb"></figure>`
+          : "";
+        const preview = esc((q.prompt || "").slice(0, 220)) + ((q.prompt || "").length > 220 ? "…" : "");
+        const attemptsHtml = q.attempts.length
+          ? `<ul class="admin-attempt-list">
+              ${q.attempts
+                .map(
+                  (a, i) => `
+                <li>
+                  <span>Attempt ${q.attempts.length - i} · ${fmtDate(a.finished_at)} · ${a.final_words || 0} words · ${fmtMs(a.elapsed_ms)}</span>
+                  <a class="btn secondary" href="/admin/writing/${a.id}?user_id=${uid}">View</a>
+                </li>`
+                )
+                .join("")}
+            </ul>`
+          : '<p class="q-meta">No finished attempts yet.</p>';
+
+        return `
+        <article class="admin-q-card">
+          <header class="admin-q-head">
+            <div>
+              <span class="task-badge">${esc(q.task_type)}</span>
+              <strong>${esc(q.title)}</strong>
+              <span class="q-meta"> · ${q.attempt_count} attempt(s)</span>
+            </div>
+            <a class="btn" href="/admin/questions/${q.id}/edit">Edit</a>
+          </header>
+          ${img}
+          <p class="admin-q-preview">${preview}</p>
+          <h4 class="admin-q-sub">Attempts</h4>
+          ${attemptsHtml}
+        </article>`;
+      })
+      .join("");
   }
 
   load();

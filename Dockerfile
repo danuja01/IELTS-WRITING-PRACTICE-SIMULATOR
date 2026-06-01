@@ -1,6 +1,6 @@
 FROM python:3.12-alpine
 WORKDIR /app
-ARG APP_VERSION=2.0.0
+ARG APP_VERSION=2.0.1
 LABEL org.opencontainers.image.version="${APP_VERSION}"
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

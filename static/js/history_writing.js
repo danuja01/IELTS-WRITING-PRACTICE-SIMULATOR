@@ -1,6 +1,10 @@
 (function () {
   const wid = window.HISTORY_WRITING_ID;
+  const adminView = window.ADMIN_VIEW === true;
+  const backUid = window.ADMIN_USER_ID;
   const root = document.getElementById("detail-root");
+  const backLink = document.getElementById("back-link");
+  const pageTitle = document.getElementById("page-title");
 
   function esc(s) {
     const d = document.createElement("div");
@@ -28,6 +32,15 @@
       root.innerHTML = `<p class="msg error">${esc(w.error)}</p>`;
       return;
     }
+
+    if (adminView && pageTitle) {
+      pageTitle.textContent = w.username ? `Attempt — ${w.username}` : "Attempt detail";
+    }
+    if (adminView && backLink) {
+      const uid = backUid || w.user_id;
+      if (uid) backLink.href = `/admin/users/${uid}`;
+    }
+
     const stats = w.paragraph_stats || [];
     const totalParaTime = stats.reduce((s, p) => s + (p.time_ms || 0), 0) || w.elapsed_ms || 1;
 
@@ -55,10 +68,15 @@
       paraTable = '<p class="q-meta">No paragraph timing recorded for this attempt.</p>';
     }
 
+    const userLine = adminView && w.username
+      ? `<div class="stat-row"><span>Student</span><strong>${esc(w.username)}</strong></div>`
+      : "";
+
     root.innerHTML = `
       <section class="panel">
         <h2>${esc(w.question_title || "Writing")}</h2>
         <div class="stat-grid">
+          ${userLine}
           <div class="stat-row"><span>Finished</span><strong>${esc(w.finished_at)}</strong></div>
           <div class="stat-row"><span>Total time</span><strong>${fmtMs(w.elapsed_ms)}</strong></div>
           <div class="stat-row"><span>Words</span><strong>${w.final_words || 0}</strong></div>
@@ -70,7 +88,7 @@
         ${paraTable}
       </section>
       <section class="panel">
-        <h2>Your answer</h2>
+        <h2>Answer</h2>
         <pre class="essay-readonly">${esc(w.content)}</pre>
       </section>`;
   }

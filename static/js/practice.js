@@ -32,6 +32,69 @@
   let lastParaTick = null;
   let activeParaIndex = 0;
   let plainPrompt = "";
+  let savedEssaySel = { start: 0, end: 0 };
+
+  function closeMenus() {
+    essayMenu.classList.remove("is-open");
+    promptMenu.classList.remove("is-open");
+  }
+
+  function openMenu(menu, x, y) {
+    closeMenus();
+    menu.style.left = x + "px";
+    menu.style.top = y + "px";
+    menu.classList.add("is-open");
+  }
+
+  function saveEssaySelection() {
+    savedEssaySel = { start: essay.selectionStart, end: essay.selectionEnd };
+  }
+
+  function rangeToPlainOffsets(container, range) {
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+    let offset = 0;
+    let start = null;
+    let end = null;
+    let node;
+    while ((node = walker.nextNode())) {
+      const len = node.textContent.length;
+      if (node === range.startContainer) start = offset + range.startOffset;
+      if (node === range.endContainer) end = offset + range.endOffset;
+      offset += len;
+    }
+    if (start == null || end == null || start >= end) return null;
+    return { start, end };
+  }
+
+  function applyHighlightsHtml(text, highlights) {
+    if (!highlights || !highlights.length) return escapeHtml(text);
+    const sorted = highlights.slice().sort((a, b) => a.start - b.start);
+    let out = "";
+    let pos = 0;
+    for (const h of sorted) {
+      if (h.start < pos || h.end > text.length || h.start >= h.end) continue;
+      out += escapeHtml(text.slice(pos, h.start));
+      out += '<mark class="q-highlight">' + escapeHtml(text.slice(h.start, h.end)) + "</mark>";
+      pos = h.end;
+    }
+    out += escapeHtml(text.slice(pos));
+    return out;
+  }
+
+  function mergeHighlights(existing, added) {
+    const merged = existing.slice();
+    merged.push(added);
+    merged.sort((a, b) => a.start - b.start);
+    const out = [];
+    for (const h of merged) {
+      if (!out.length || h.start > out[out.length - 1].end) {
+        out.push({ ...h });
+      } else {
+        out[out.length - 1].end = Math.max(out[out.length - 1].end, h.end);
+      }
+    }
+    return out;
+  }
 
   fontSize.addEventListener("input", applyEditorStyle);
   lineHeight.addEventListener("input", applyEditorStyle);
@@ -177,7 +240,8 @@
       <span class="task-badge">${escapeHtml(question.task_type)} · ${mins} min exam time</span>
       <h2 class="question-title">${escapeHtml(question.title)}</h2>
       ${imgHtml}
-      <div id="prompt-text" class="prompt-text">${question.prompt_html || escapeHtml(question.prompt)}</div>`;
+      <div id="prompt-text" class="prompt-text">${question.prompt_html || escapeHtml(question.prompt)}</div>
+      <p class="selection-hint">Select text → right-click to highlight (question) or see word count (answer)</p>`;
     plainPrompt = question.prompt || "";
   }
 
@@ -192,51 +256,31 @@
     examLimitMs = mins * 60 * 1000;
     timerMain.textContent = formatClock(examLimitMs);
     renderPrompt();
-    setupPromptHighlightMenu();
   }
 
-  function setupPromptHighlightMenu() {
-    const promptEl = document.getElementById("prompt-text");
+  questionPane.addEventListener("contextmenu", (e) => {
+    const promptEl = e.target.closest("#prompt-text");
     if (!promptEl) return;
-    promptEl.addEventListener("contextmenu", (e) => {
-      const sel = window.getSelection();
-      if (!sel || sel.isCollapsed || !promptEl.contains(sel.anchorNode)) return;
-      e.preventDefault();
-      promptMenu.style.left = e.pageX + "px";
-      promptMenu.style.top = e.pageY + "px";
-      promptMenu.hidden = false;
-      promptMenu._range = sel.getRangeAt(0).cloneRange();
-    });
-  }
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !promptEl.contains(sel.anchorNode)) return;
+    e.preventDefault();
+    promptMenu._range = sel.getRangeAt(0).cloneRange();
+    openMenu(promptMenu, e.pageX, e.pageY);
+  });
 
-  promptMenu.querySelector("[data-action=highlight]").addEventListener("click", async () => {
-    promptMenu.hidden = true;
+  promptMenu.addEventListener("click", (e) => e.stopPropagation());
+
+  promptMenu.querySelector("[data-action=highlight]").addEventListener("click", async (e) => {
+    e.stopPropagation();
+    closeMenus();
     const range = promptMenu._range;
-    if (!range || !plainPrompt) return;
-    const pre = range.startContainer;
     const promptEl = document.getElementById("prompt-text");
-    const temp = document.createElement("div");
-    temp.appendChild(range.cloneContents());
-    const selectedText = temp.textContent;
-    if (!selectedText) return;
-    const start = plainPrompt.indexOf(selectedText);
-    if (start < 0) return;
-    const end = start + selectedText.length;
-    const highlights = (question.highlights || []).slice();
-    highlights.push({ start, end });
+    if (!range || !plainPrompt || !promptEl) return;
+    const offsets = rangeToPlainOffsets(promptEl, range);
+    if (!offsets) return;
+    const highlights = mergeHighlights(question.highlights || [], offsets);
     question.highlights = highlights;
-    question.prompt_html = null;
-    const sorted = highlights.slice().sort((a, b) => b.start - a.start);
-    let html = plainPrompt;
-    sorted.forEach((h) => {
-      html =
-        html.slice(0, h.start) +
-        "<mark class=\"q-highlight\">" +
-        html.slice(h.start, h.end) +
-        "</mark>" +
-        html.slice(h.end);
-    });
-    promptEl.innerHTML = html;
+    promptEl.innerHTML = applyHighlightsHtml(plainPrompt, highlights);
     await saveHighlights(highlights);
   });
 
@@ -353,23 +397,27 @@
     if (started) activeParaIndex = paragraphIndexAtPosition(essay.value, essay.selectionStart);
   });
 
+  essay.addEventListener("select", saveEssaySelection);
+  essay.addEventListener("mouseup", saveEssaySelection);
+
   essay.addEventListener("contextmenu", (e) => {
-    const start = essay.selectionStart;
-    const end = essay.selectionEnd;
+    let start = essay.selectionStart;
+    let end = essay.selectionEnd;
+    if (start === end && savedEssaySel.start !== savedEssaySel.end) {
+      start = savedEssaySel.start;
+      end = savedEssaySel.end;
+    }
     if (start === end) return;
     e.preventDefault();
     const selected = essay.value.slice(start, end);
     const wc = countWords(selected);
     essayMenu.querySelector(".wc-label").textContent = `${wc} word${wc === 1 ? "" : "s"} selected`;
-    essayMenu.style.left = e.pageX + "px";
-    essayMenu.style.top = e.pageY + "px";
-    essayMenu.hidden = false;
+    openMenu(essayMenu, e.pageX, e.pageY);
   });
 
-  document.addEventListener("click", () => {
-    essayMenu.hidden = true;
-    promptMenu.hidden = true;
-  });
+  essayMenu.addEventListener("click", (e) => e.stopPropagation());
+
+  document.addEventListener("click", closeMenus);
 
   startBtn.addEventListener("click", startSession);
   finishBtn.addEventListener("click", finishSession);

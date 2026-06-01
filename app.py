@@ -565,7 +565,13 @@ def admin_history_question(uid, question_id):
 @app.route("/admin/writing/<int:writing_id>")
 @admin_required
 def admin_writing_detail(writing_id):
-    return render_template("history_writing.html", writing_id=writing_id, admin_view=True)
+    uid = request.args.get("user_id", type=int)
+    return render_template(
+        "history_writing.html",
+        writing_id=writing_id,
+        admin_view=True,
+        user_id=uid,
+    )
 
 
 # --- Categories API ---
@@ -973,23 +979,26 @@ def admin_get_user(uid):
     row = get_db().execute("SELECT * FROM users WHERE id = ?", (uid,)).fetchone()
     if not row:
         return jsonify({"error": "not found"}), 404
-    questions = get_db().execute(
+    db = get_db()
+    questions = db.execute(
         "SELECT * FROM questions WHERE user_id = ? ORDER BY id DESC", (uid,)
     ).fetchall()
-    grouped = get_db().execute(
-        """SELECT q.id AS question_id, q.title, COUNT(w.id) AS attempt_count,
-                  MAX(w.finished_at) AS last_finished
-           FROM questions q
-           LEFT JOIN writings w ON w.question_id = q.id AND w.finished_at IS NOT NULL
-           WHERE q.user_id = ?
-           GROUP BY q.id HAVING attempt_count > 0
-           ORDER BY last_finished DESC""",
-        (uid,),
-    ).fetchall()
+    out_questions = []
+    for q in questions:
+        qd = _question_json(q)
+        attempts = db.execute(
+            """SELECT id, finished_at, final_words, elapsed_ms
+               FROM writings
+               WHERE user_id = ? AND question_id = ? AND finished_at IS NOT NULL
+               ORDER BY finished_at DESC""",
+            (uid, q["id"]),
+        ).fetchall()
+        qd["attempt_count"] = len(attempts)
+        qd["attempts"] = [dict(a) for a in attempts]
+        out_questions.append(qd)
     return jsonify({
         "user": _user_json(row),
-        "questions": [_question_json(q) for q in questions],
-        "writing_groups": [dict(g) for g in grouped],
+        "questions": out_questions,
     })
 
 

@@ -7,9 +7,13 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-  <header class="topbar">
-    <h1>Attempt detail</h1>
+  <header class="topbar{% if admin_view %} topbar-admin{% endif %}">
+    <h1 id="page-title">Attempt detail</h1>
+    {% if admin_view %}
+    <a id="back-link" href="{{ url_for('admin_home') }}" class="btn secondary">← User</a>
+    {% else %}
     <a href="javascript:history.back()" class="btn secondary">← Back</a>
+    {% endif %}
   </header>
   <main class="home-main" id="detail-root">
     <p class="q-meta">Loading…</p>
@@ -17,6 +21,7 @@
   <script>
     window.HISTORY_WRITING_ID = {{ writing_id }};
     window.ADMIN_VIEW = {{ 'true' if admin_view else 'false' }};
+    window.ADMIN_USER_ID = {% if admin_view and user_id %}{{ user_id }}{% else %}null{% endif %};
   </script>
   <script src="{{ url_for('static', filename='js/history_writing.js') }}"></script>
 </body>

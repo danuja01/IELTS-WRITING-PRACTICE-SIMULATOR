@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.1
+
+- Fix right-click word count on essay (selection backup, reliable context menus)
+- Fix question highlight using text-node offsets (works with existing highlights)
+- Bolder question prompt styling + usage hint
+- Admin user page: question cards with Task 1 images, prompt preview, and attempts list
+
 ## 2.0.0
 
 - Admin bootstrap (`/setup-admin`) when no admin exists
