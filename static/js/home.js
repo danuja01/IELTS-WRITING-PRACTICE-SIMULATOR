@@ -1,8 +1,8 @@
 (function () {
   const myListRoot = document.getElementById("my-question-list");
-  const allListRoot = document.getElementById("all-question-list");
+  const othersListRoot = document.getElementById("others-question-list");
   const myCountEl = document.getElementById("my-question-count");
-  const allCountEl = document.getElementById("all-question-count");
+  const othersCountEl = document.getElementById("others-question-count");
   const historyEl = document.getElementById("history-list");
   const form = document.getElementById("add-question-form");
   const formMsg = document.getElementById("form-msg");
@@ -318,22 +318,22 @@
         }
         await loadQuestions();
         const myAccordion = document.querySelector('.question-accordions .accordion:first-of-type');
-        const allAccordion = document.querySelector('.question-accordions .accordion:last-of-type');
+        const othersAccordion = document.querySelector('.question-accordions .accordion:last-of-type');
         if (myAccordion) myAccordion.setAttribute("open", "");
-        if (allAccordion) allAccordion.removeAttribute("open");
+        if (othersAccordion) othersAccordion.removeAttribute("open");
       });
     });
   }
 
   function renderQuestions() {
     const mine = questions.filter((q) => q.is_mine);
-    const allCatalog = questions.filter((q) => !q.copied_from_id);
+    const others = questions.filter((q) => !q.is_mine);
     if (myCountEl) myCountEl.textContent = mine.length ? `${mine.length}` : "0";
-    if (allCountEl) allCountEl.textContent = allCatalog.length ? `${allCatalog.length}` : "0";
+    if (othersCountEl) othersCountEl.textContent = others.length ? `${others.length}` : "0";
     renderGroupedList(myListRoot, mine, false);
-    renderGroupedList(allListRoot, allCatalog, true);
+    renderGroupedList(othersListRoot, others, true);
     bindQuestionActions(myListRoot);
-    bindQuestionActions(allListRoot);
+    bindQuestionActions(othersListRoot);
   }
 
   async function loadQuestions(retry = 0) {
@@ -348,7 +348,7 @@
     }
     if (!res.ok) {
       myListRoot.innerHTML = '<p class="q-meta">Could not load questions. Refresh the page.</p>';
-      allListRoot.innerHTML = myListRoot.innerHTML;
+      if (othersListRoot) othersListRoot.innerHTML = myListRoot.innerHTML;
       return;
     }
     questions = await res.json();

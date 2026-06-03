@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.1
+
+- Home: rename **All** accordion to **Others**; list every other user’s questions (not yours)
+
 ## 2.2.0
 
 - Forgot password: email with 6-digit reset code (SMTP via `.env`)
