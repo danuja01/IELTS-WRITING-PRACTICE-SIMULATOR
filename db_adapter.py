@@ -20,7 +20,9 @@ def is_postgres() -> bool:
 
 
 def _sqlite_to_pg(sql: str) -> str:
-    return sql.replace("?", "%s")
+    sql = sql.replace("?", "%s")
+    sql = re.sub(r"\bIFNULL\s*\(", "COALESCE(", sql, flags=re.IGNORECASE)
+    return sql
 
 
 def _insert_returning(sql: str) -> str:
@@ -277,16 +279,28 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
 """
 
 
+_INIT_LOCK_ID = 915034521
+
+
+def _run_postgres_init(db) -> None:
+    for stmt in _POSTGRES_INIT.strip().split(";"):
+        stmt = stmt.strip()
+        if stmt:
+            db.execute(stmt)
+    db.commit()
+    _migrate_postgres(db)
+
+
 def init_database(db_path: str):
     os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
     with closing(connect_db(db_path)) as db:
         if IS_POSTGRES:
-            for stmt in _POSTGRES_INIT.strip().split(";"):
-                stmt = stmt.strip()
-                if stmt:
-                    db.execute(stmt)
-            db.commit()
-            _migrate_postgres(db)
+            db.execute("SELECT pg_advisory_lock(%s)", (_INIT_LOCK_ID,))
+            try:
+                _run_postgres_init(db)
+            finally:
+                db.execute("SELECT pg_advisory_unlock(%s)", (_INIT_LOCK_ID,))
+                db.commit()
         else:
             db.executescript(_SQLITE_INIT)
             db.commit()

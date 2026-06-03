@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.0.1
+
+- **PostgreSQL**: translate `IFNULL` → `COALESCE` in queries (fixes `/api/questions` 500)
+- **PostgreSQL**: advisory lock on schema init (fixes race when Gunicorn starts multiple workers)
+
 ## 3.0.0
 
 Scaling and deployment:
