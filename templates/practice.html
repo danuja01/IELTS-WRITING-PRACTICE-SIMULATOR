@@ -9,32 +9,38 @@
 <body class="practice-page">
   <div class="practice-shell">
     <header class="practice-bar">
-      <span class="brand">IELTS Writing</span>
-      <div class="timer-block">
-        <div class="timer" id="timer-display">
-          <span id="timer-main">40:00</span>
-          <span class="timer-label" id="timer-label"> remaining</span>
+      <div class="practice-bar-group practice-bar-timers">
+        <span class="brand">IELTS Writing</span>
+        <div class="timer-block">
+          <div class="timer" id="timer-display">
+            <span id="timer-main">40:00</span>
+            <span class="timer-label" id="timer-label"> remaining</span>
+          </div>
+          <div class="timer timer-secondary" id="elapsed-display">
+            <span id="elapsed-main">00:00</span>
+            <span class="timer-label"> elapsed</span>
+          </div>
         </div>
-        <div class="timer" id="elapsed-display" style="font-size:0.85rem;font-weight:500">
-          <span id="elapsed-main">00:00</span>
-          <span class="timer-label"> elapsed</span>
+      </div>
+      <div class="practice-bar-group practice-bar-sliders">
+        <div class="editor-controls">
+          <label for="font-size">Text</label>
+          <input type="range" id="font-size" min="14" max="28" value="18" title="Text size">
+        </div>
+        <div class="editor-controls">
+          <label for="line-height">Spacing</label>
+          <input type="range" id="line-height" min="140" max="220" value="160" step="5" title="Line spacing">
+        </div>
+        <div class="editor-controls" id="chart-size-control" hidden>
+          <label for="chart-size">Chart</label>
+          <input type="range" id="chart-size" min="50" max="100" value="100" step="5" title="Chart size">
         </div>
       </div>
-      <div class="word-count">Words: <span id="word-count">0</span></div>
-      <div class="editor-controls">
-        <label for="font-size">Text size</label>
-        <input type="range" id="font-size" min="14" max="28" value="18">
-        <label for="line-height">Line spacing</label>
-        <input type="range" id="line-height" min="140" max="220" value="160" step="5">
+      <div class="practice-bar-group practice-bar-actions">
+        <a href="{{ url_for('home') }}" class="btn secondary btn-compact">← Back</a>
+        <button type="button" id="start-btn" class="btn-compact">Start</button>
+        <button type="button" id="finish-btn" class="btn-compact" disabled>Finish</button>
       </div>
-      <div class="editor-controls" id="chart-size-control" hidden>
-        <label for="chart-size">Chart size</label>
-        <input type="range" id="chart-size" min="50" max="100" value="100" step="5">
-      </div>
-      <div class="bar-spacer"></div>
-      <a href="{{ url_for('home') }}" class="btn secondary">← Back</a>
-      <button type="button" id="start-btn">Start</button>
-      <button type="button" id="finish-btn" disabled>Finish</button>
     </header>
     <div class="split">
       <section class="pane">
@@ -47,12 +53,13 @@
         </div>
       </section>
       <section class="pane write-pane">
-        <div class="pane-head">Your answer</div>
+        <div class="pane-head pane-head-write">Your answer</div>
         <textarea id="essay" placeholder="Click Start, then begin writing…" disabled spellcheck="true"></textarea>
         <div class="write-footer">
           <span id="save-status">Not started</span>
           <span id="sel-word-count" class="sel-word-count" hidden></span>
-          <span>Auto-saves every 15s</span>
+          <span class="write-autosave">Auto-saves every 15s</span>
+          <span class="write-word-count">Words: <strong id="word-count">0</strong></span>
         </div>
       </section>
     </div>

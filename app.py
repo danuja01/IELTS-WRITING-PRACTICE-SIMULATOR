@@ -250,7 +250,7 @@ def _root_question_id(db, qid: int) -> int:
 def _question_json(row, for_user_id=None):
     d = dict(row)
     d["has_image"] = bool(d.get("image_path"))
-    d["image_url"] = url_for("question_image", qid=d["id"]) if d["has_image"] else None
+    d["image_url"] = f"/api/questions/{d['id']}/image" if d["has_image"] else None
     d.pop("prompt_highlights", None)
     cid = d.get("copied_from_id")
     d["is_fork"] = bool(cid)
@@ -270,7 +270,7 @@ def _question_detail_json(row):
         "prompt": row["prompt"] if "prompt" in row.keys() else "",
     }
     d["has_image"] = bool(row["image_path"] if "image_path" in row.keys() else None)
-    d["image_url"] = url_for("question_image", qid=row["id"]) if d["has_image"] else None
+    d["image_url"] = f"/api/questions/{row['id']}/image" if d["has_image"] else None
     return d
 
 
@@ -285,7 +285,7 @@ def _writing_detail_json(row):
     if "image_path" in row.keys() and row["question_id"]:
         out["question_has_image"] = bool(row["image_path"])
         out["question_image_url"] = (
-            url_for("question_image", qid=row["question_id"]) if row["image_path"] else None
+            f"/api/questions/{row['question_id']}/image" if row["image_path"] else None
         )
     else:
         out["question_has_image"] = False
@@ -397,6 +397,8 @@ def before_request():
     if "user_id" in session:
         if session.get("is_admin"):
             if re.match(r"^/api/writings/\d+$", path) and request.method == "GET":
+                return None
+            if re.match(r"^/api/questions/\d+/image$", path) and request.method == "GET":
                 return None
             student_paths = ("/home", "/practice", "/history", "/api/questions", "/api/writings", "/api/categories")
             if any(path == p or path.startswith(p + "/") for p in student_paths):

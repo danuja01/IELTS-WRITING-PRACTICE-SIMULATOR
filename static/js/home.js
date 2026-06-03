@@ -16,6 +16,19 @@
 
   let categories = [];
   let questions = [];
+  const assets = window.HOME_ASSETS || {};
+  const iconDots = assets.dots || "/static/assets/three-dots-line.svg";
+  const iconBin = assets.bin || "/static/assets/bin.svg";
+
+  function closeAllRowMenus() {
+    document.querySelectorAll(".row-menu-dropdown.is-open").forEach((el) => {
+      el.classList.remove("is-open");
+      el.hidden = true;
+    });
+    document.querySelectorAll(".row-menu-btn[aria-expanded='true']").forEach((btn) => {
+      btn.setAttribute("aria-expanded", "false");
+    });
+  }
 
   function initExclusiveAccordions() {
     const accordions = document.querySelectorAll(".question-accordions .accordion");
@@ -138,11 +151,24 @@
             : "";
         const manageActions = q.is_mine
           ? `
-                <select data-move="${q.id}" class="move-cat" title="Move to another category">
-                  <option value="">Move to…</option>
-                  ${moveCategoryOptions(q)}
-                </select>
-                <button type="button" class="danger" data-del="${q.id}">Delete</button>`
+                <div class="row-menu-wrap">
+                  <button type="button" class="icon-btn row-menu-btn" data-menu="${q.id}" aria-label="More options" aria-expanded="false" aria-haspopup="true">
+                    <img src="${iconDots}" alt="" width="18" height="18">
+                  </button>
+                  <div class="row-menu-dropdown" data-menu-panel="${q.id}" hidden>
+                    <label class="row-menu-move">
+                      <span>Move to</span>
+                      <select data-move="${q.id}" class="move-cat">
+                        <option value="">Choose category…</option>
+                        ${moveCategoryOptions(q)}
+                      </select>
+                    </label>
+                    <button type="button" class="row-menu-item row-menu-danger" data-del="${q.id}">
+                      <img src="${iconBin}" alt="" width="16" height="16">
+                      Delete
+                    </button>
+                  </div>
+                </div>`
           : "";
         return `
             <li class="q-row">
@@ -153,10 +179,10 @@
                 </div>
                 <div class="q-meta">${q.has_image ? "Chart · " : ""}${fmtDate(q.created_at)}${ownerLine}${forkLine}</div>
               </div>
-              <div class="actions">
+              <div class="actions q-row-actions">
                 ${copyBtn}
-                ${manageActions}
                 <a class="btn" href="/practice/${q.id}">Start</a>
+                ${manageActions}
               </div>
             </li>`;
       })
@@ -201,8 +227,27 @@
   }
 
   function bindQuestionActions(root) {
+    root.querySelectorAll(".row-menu-wrap").forEach((wrap) => {
+      wrap.addEventListener("click", (e) => e.stopPropagation());
+    });
+    root.querySelectorAll(".row-menu-btn").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const id = btn.dataset.menu;
+        const panel = root.querySelector(`[data-menu-panel="${id}"]`);
+        if (!panel) return;
+        const open = panel.classList.contains("is-open");
+        closeAllRowMenus();
+        if (!open) {
+          panel.hidden = false;
+          panel.classList.add("is-open");
+          btn.setAttribute("aria-expanded", "true");
+        }
+      });
+    });
     root.querySelectorAll("[data-del]").forEach((btn) => {
       btn.addEventListener("click", async () => {
+        closeAllRowMenus();
         if (!confirm("Delete question?")) return;
         await fetch(`/api/questions/${btn.dataset.del}`, { method: "DELETE" });
         loadQuestions();
@@ -213,6 +258,7 @@
         const qid = sel.dataset.move;
         const val = sel.value;
         if (!val) return;
+        closeAllRowMenus();
         const categoryId = val === "0" ? null : parseInt(val, 10);
         await fetch(`/api/questions/${qid}/move`, {
           method: "POST",
@@ -345,6 +391,7 @@
 
   toggleTask1Image();
   initExclusiveAccordions();
+  document.addEventListener("click", () => closeAllRowMenus());
   (async () => {
     await loadCategories();
     await loadQuestions();

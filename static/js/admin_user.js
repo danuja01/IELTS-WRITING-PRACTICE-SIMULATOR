@@ -19,6 +19,11 @@
     return d.innerHTML;
   }
 
+  function safeImageUrl(url) {
+    if (!url || typeof url !== "string") return "";
+    return /^\/api\/questions\/\d+\/image$/.test(url) ? url : "";
+  }
+
   function fmtDate(iso) {
     try {
       return new Date(iso).toLocaleString();
@@ -45,9 +50,11 @@
     cardsEl.innerHTML = list
       .map((q) => {
         const attempts = q.attempts || [];
-        const img = q.has_image && q.image_url
-          ? `<div class="history-chart-box admin-chart-box"><img src="${esc(q.image_url)}" alt="Chart" class="history-chart-img"></div>`
-          : "";
+        const imgUrl = safeImageUrl(q.image_url);
+        const img =
+          q.has_image && imgUrl
+            ? `<div class="history-chart-box admin-chart-box"><img src="${imgUrl}" alt="Chart" class="history-chart-img"></div>`
+            : "";
         const prompt = q.prompt || "";
         const preview = esc(prompt.slice(0, 220)) + (prompt.length > 220 ? "…" : "");
         const forkCount = q.fork_count || 0;
@@ -72,7 +79,7 @@
                 )
                 .join("")}
             </ul>`
-          : '<p class="q-meta">No finished attempts yet.</p>';
+          : '<p class="admin-attempts-empty">No finished attempts yet.</p>';
 
         return `
         <article class="admin-q-card">
@@ -87,8 +94,12 @@
           ${img}
           <p class="admin-q-preview">${preview}</p>
           ${forksHtml}
-          <h4 class="admin-q-sub">Attempts</h4>
-          ${attemptsHtml}
+          <section class="admin-attempts-section">
+            <h4 class="admin-q-sub">Attempts</h4>
+            <div class="admin-attempts-body">
+              ${attemptsHtml}
+            </div>
+          </section>
         </article>`;
       })
       .join("");

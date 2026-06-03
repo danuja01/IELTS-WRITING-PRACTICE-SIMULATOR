@@ -222,6 +222,109 @@ button:disabled {
   white-space: nowrap;
 }
 
+.q-row-actions {
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.row-menu-wrap {
+  position: relative;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.icon-btn:hover {
+  background: #f0f2f5;
+  border-color: #c5cad1;
+}
+
+.icon-btn img {
+  display: block;
+  opacity: 0.75;
+}
+
+.row-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 12rem;
+  background: #fff;
+  border: 1px solid var(--border);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  z-index: 30;
+  padding: 0.35rem 0;
+  border-radius: 6px;
+}
+
+.row-menu-dropdown[hidden]:not(.is-open) {
+  display: none;
+}
+
+.row-menu-dropdown.is-open {
+  display: block;
+}
+
+.row-menu-move {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  border-bottom: 1px solid #eef0f2;
+}
+
+.row-menu-move span {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 0.68rem;
+}
+
+.row-menu-move .move-cat {
+  min-width: 0;
+  max-width: none;
+  width: 100%;
+}
+
+.row-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.85rem;
+  text-align: left;
+  color: var(--text);
+}
+
+.row-menu-item:hover {
+  background: #f5f7fa;
+}
+
+.row-menu-danger {
+  color: var(--danger);
+}
+
+.row-menu-danger img {
+  opacity: 0.9;
+}
+
 .move-cat {
   min-width: 7rem;
   max-width: 9rem;
@@ -254,14 +357,43 @@ body.practice-page {
 .practice-bar {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 0.4rem 0.75rem;
-  background: #e8eaed;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(180deg, #eef1f4 0%, #e2e6eb 100%);
   border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
   flex-shrink: 0;
   min-width: 0;
   max-width: 100%;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+}
+
+.practice-bar-group {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.practice-bar-timers {
+  flex-shrink: 0;
+}
+
+.practice-bar-sliders {
+  flex: 1 1 auto;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.practice-bar-actions {
+  flex-shrink: 0;
+  gap: 0.4rem;
+}
+
+.btn-compact {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.85rem;
 }
 
 .practice-bar .brand {
@@ -343,14 +475,19 @@ body.practice-page {
 }
 
 .pane-head {
-  padding: 0.35rem 0.75rem;
-  background: #dde1e6;
+  padding: 0.4rem 0.85rem;
+  background: linear-gradient(180deg, #e8ecf1 0%, #dde1e6 100%);
   border-bottom: 1px solid var(--border);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--muted);
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
+}
+
+.pane-head-write {
+  color: var(--accent);
+  background: linear-gradient(180deg, #e6ebf2 0%, #d8dee8 100%);
 }
 
 .question-body {
@@ -437,17 +574,39 @@ body.practice-page {
 
 .write-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
-  padding: 0.35rem 0.75rem;
+  padding: 0.45rem 1rem;
   border-top: 1px solid var(--border);
-  background: #e8eaed;
+  background: linear-gradient(180deg, #eef1f4 0%, #e8eaed 100%);
   font-size: 0.8rem;
   color: var(--muted);
   gap: 0.75rem;
   flex-wrap: wrap;
   flex-shrink: 0;
   min-width: 0;
+}
+
+.write-footer #save-status {
+  flex: 1;
+  min-width: 5rem;
+}
+
+.write-word-count {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  margin-left: auto;
+}
+
+.write-word-count strong {
+  color: var(--accent);
+  font-size: 1.05em;
+}
+
+.write-autosave {
+  font-size: 0.72rem;
+  opacity: 0.85;
 }
 
 /* Modal */
@@ -919,9 +1078,28 @@ mark.q-highlight {
 }
 
 .admin-q-sub {
-  margin: 0.75rem 0 0.35rem;
+  margin: 0 0 0.5rem;
   font-size: 0.85rem;
   color: var(--muted);
+  font-weight: 600;
+}
+
+.admin-attempts-section {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+
+.admin-attempts-body {
+  min-height: 2.5rem;
+}
+
+.admin-attempts-empty {
+  margin: 0;
+  padding: 1rem 0.5rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.85rem;
 }
 
 .admin-q-thumb {

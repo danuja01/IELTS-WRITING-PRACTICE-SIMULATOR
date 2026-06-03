@@ -73,6 +73,12 @@
       <p><a href="{{ url_for('history_page') }}">View full history →</a></p>
     </section>
   </main>
+  <script>
+    window.HOME_ASSETS = {
+      dots: "{{ url_for('static', filename='assets/three-dots-line.svg') }}",
+      bin: "{{ url_for('static', filename='assets/bin.svg') }}"
+    };
+  </script>
   <script src="{{ url_for('static', filename='js/home.js') }}?v={{ app_version }}"></script>
 </body>
 </html>

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.0
+
+- Home: Start only on question rows; Move and Delete in a three-dot menu (bin icon)
+- Practice: word count in the writing footer; cleaner top bar and pane headers
+- Admin user page: fix Task 1 chart images for admins; attempts section divider; centered empty state
+
 ## 2.0.17
 
 - Question forks: All shows originals only (no duplicate copies); Copy to My tracks source; admin fork list
