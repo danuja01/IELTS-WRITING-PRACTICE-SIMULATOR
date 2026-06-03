@@ -13,6 +13,41 @@
   const catSelect = document.getElementById("q-category");
   const catList = document.getElementById("category-list");
   const catForm = document.getElementById("add-category-form");
+  const qVisPublic = document.getElementById("q-vis-public");
+  const qVisPrivate = document.getElementById("q-vis-private");
+  const ADD_Q_VISIBILITY_KEY = "ielts-add-question-visibility";
+  let addQuestionPrivate = false;
+
+  function loadAddQuestionVisibilityPref() {
+    try {
+      return localStorage.getItem(ADD_Q_VISIBILITY_KEY) === "private";
+    } catch {
+      return false;
+    }
+  }
+
+  function saveAddQuestionVisibilityPref(privateMode) {
+    try {
+      localStorage.setItem(ADD_Q_VISIBILITY_KEY, privateMode ? "private" : "public");
+    } catch {
+      /* ignore quota / private mode */
+    }
+  }
+
+  function setAddQuestionVisibility(privateMode) {
+    addQuestionPrivate = privateMode;
+    saveAddQuestionVisibilityPref(privateMode);
+    if (qVisPublic) qVisPublic.classList.toggle("active", !privateMode);
+    if (qVisPrivate) qVisPrivate.classList.toggle("active", privateMode);
+    if (qVisPublic) qVisPublic.setAttribute("aria-selected", !privateMode ? "true" : "false");
+    if (qVisPrivate) qVisPrivate.setAttribute("aria-selected", privateMode ? "true" : "false");
+  }
+
+  if (qVisPublic && qVisPrivate) {
+    setAddQuestionVisibility(loadAddQuestionVisibilityPref());
+    qVisPublic.addEventListener("click", () => setAddQuestionVisibility(false));
+    qVisPrivate.addEventListener("click", () => setAddQuestionVisibility(true));
+  }
 
   let categories = [];
   let questions = [];
@@ -178,15 +213,28 @@
     return questions.some((q) => q.is_mine && Number(q.copied_from_id) === root);
   }
 
-  function renderQuestionRows(items, showOwner) {
+  function privacyBadge(q) {
+    if (!q.is_mine) return "";
+    const cls = q.is_private ? "privacy-private" : "privacy-public";
+    const label = q.is_private ? "Private" : "Public";
+    return ` · <span class="privacy-badge ${cls}">${label}</span>`;
+  }
+
+  function renderQuestionRows(items, showOwner, hideOwnerInMeta, rowClass) {
+    const rowCls = rowClass || "q-row";
     return items
       .map((q) => {
-        const ownerLine = showOwner && !q.is_mine ? ` · by ${esc(q.owner_username || "unknown")}` : "";
-        const forkLine = q.is_fork
-          ? " · Fork"
-          : showOwner && q.fork_count > 0
-            ? ` · ${q.fork_count} fork${q.fork_count === 1 ? "" : "s"}`
+        const ownerLine =
+          showOwner && !hideOwnerInMeta && !q.is_mine
+            ? ` · by ${esc(q.owner_username || "unknown")}`
             : "";
+        const forkLine =
+          q.is_mine && q.is_fork
+            ? " · Fork"
+            : !q.is_mine && !q.is_fork && q.fork_count > 0
+              ? ` · ${q.fork_count} fork${q.fork_count === 1 ? "" : "s"}`
+              : "";
+        const privacyLine = privacyBadge(q);
         const copyBtn =
           showOwner && !q.is_mine && !userHasForkOf(q.id)
             ? `<button type="button" class="secondary copy-to-my" data-copy="${q.id}">Copy to My</button>`
@@ -205,6 +253,9 @@
                         ${moveCategoryOptions(q)}
                       </select>
                     </label>
+                    <button type="button" class="row-menu-item" data-set-private="${q.id}" data-make-private="${q.is_private ? "0" : "1"}">
+                      ${q.is_private ? "Make public" : "Make private"}
+                    </button>
                     <button type="button" class="row-menu-item row-menu-danger" data-del="${q.id}">
                       <img src="${iconBin}" alt="" width="16" height="16">
                       Delete
@@ -213,13 +264,13 @@
                 </div>`
           : "";
         return `
-            <li class="q-row">
+            <li class="${rowCls}">
               <div class="q-row-main">
                 <div class="q-row-title">
                   <span class="task-pill">${esc((q.task_type || "task2").toUpperCase())}</span>
                   <strong>${esc(q.title)}</strong>
                 </div>
-                <div class="q-meta">${q.has_image ? "Chart · " : ""}${fmtDate(q.created_at)}${ownerLine}${forkLine}</div>
+                <div class="q-meta">${q.has_image ? "Chart · " : ""}${fmtDate(q.created_at)}${privacyLine}${ownerLine}${forkLine}</div>
               </div>
               <div class="actions q-row-actions">
                 ${copyBtn}
@@ -231,11 +282,7 @@
       .join("");
   }
 
-  function renderGroupedList(root, items, showOwner) {
-    if (!items.length) {
-      root.innerHTML = '<p class="q-meta">No questions here yet.</p>';
-      return;
-    }
+  function renderOthersCategorySections(items, showOwner) {
     const byCat = {};
     items.forEach((q) => {
       const key = q.category_id || 0;
@@ -247,7 +294,33 @@
       if (b === "0") return -1;
       return byCat[a].name.localeCompare(byCat[b].name);
     });
-    root.innerHTML = keys
+    return keys
+      .map((k) => {
+        const group = byCat[k];
+        return `
+      <section class="others-cat-section">
+        <h4 class="others-cat-title">${esc(group.name)}</h4>
+        <ul class="others-q-list">
+          ${renderQuestionRows(group.items, showOwner, true, "others-q-row")}
+        </ul>
+      </section>`;
+      })
+      .join("");
+  }
+
+  function renderCategoryBlocks(items, showOwner, hideOwnerInMeta) {
+    const byCat = {};
+    items.forEach((q) => {
+      const key = q.category_id || 0;
+      if (!byCat[key]) byCat[key] = { name: q.category_name || "Uncategorized", items: [] };
+      byCat[key].items.push(q);
+    });
+    const keys = Object.keys(byCat).sort((a, b) => {
+      if (a === "0") return 1;
+      if (b === "0") return -1;
+      return byCat[a].name.localeCompare(byCat[b].name);
+    });
+    return keys
       .map((k) => {
         const group = byCat[k];
         const count = group.items.length;
@@ -261,11 +334,77 @@
           <span class="cat-count">${count} question${count === 1 ? "" : "s"}</span>
         </div>
         <ul class="cat-questions">
-          ${renderQuestionRows(group.items, showOwner)}
+          ${renderQuestionRows(group.items, showOwner, hideOwnerInMeta)}
         </ul>
       </div>`;
       })
       .join("");
+  }
+
+  function initOwnerAccordions(root) {
+    const panels = root.querySelectorAll(".others-user-panel");
+    panels.forEach((panel) => {
+      panel.addEventListener("toggle", () => {
+        if (!panel.open) return;
+        panels.forEach((other) => {
+          if (other !== panel) other.removeAttribute("open");
+        });
+      });
+    });
+    if (panels.length === 1) {
+      panels[0].setAttribute("open", "");
+    }
+  }
+
+  function renderGroupedByOwner(root, items, showOwner) {
+    if (!items.length) {
+      root.innerHTML = '<p class="q-meta">No questions here yet.</p>';
+      return;
+    }
+    const byOwner = {};
+    items.forEach((q) => {
+      const name = q.owner_username || "Unknown";
+      if (!byOwner[name]) byOwner[name] = [];
+      byOwner[name].push(q);
+    });
+    const names = Object.keys(byOwner).sort((a, b) => a.localeCompare(b));
+    const panelsHtml = names
+      .map((name) => {
+        const ownerItems = byOwner[name];
+        const count = ownerItems.length;
+        const initial = (name.trim()[0] || "?").toUpperCase();
+        return `
+      <details class="others-user-panel">
+        <summary class="others-user-head">
+          <span class="others-user-identity">
+            <span class="others-user-avatar" aria-hidden="true">${esc(initial)}</span>
+            <span class="others-user-name">${esc(name)}</span>
+          </span>
+          <span class="others-user-count">${count} question${count === 1 ? "" : "s"}</span>
+        </summary>
+        <div class="others-user-body">
+          ${renderOthersCategorySections(ownerItems, showOwner)}
+        </div>
+      </details>`;
+      })
+      .join("");
+    root.innerHTML = `<div class="others-inner">
+      <p class="others-inner-hint">Shared questions · open a person below</p>
+      <div class="others-user-stack">${panelsHtml}</div>
+    </div>`;
+    initOwnerAccordions(root);
+  }
+
+  function renderGroupedList(root, items, showOwner, byOwner) {
+    if (!items.length) {
+      root.innerHTML = '<p class="q-meta">No questions here yet.</p>';
+      return;
+    }
+    if (byOwner) {
+      renderGroupedByOwner(root, items, showOwner);
+      return;
+    }
+    root.innerHTML = renderCategoryBlocks(items, showOwner, false);
   }
 
   function bindQuestionActions(root) {
@@ -281,6 +420,39 @@
         const open = panel.classList.contains("is-open");
         closeAllRowMenus();
         if (!open) openRowMenu(btn, panel);
+      });
+    });
+    root.querySelectorAll("[data-set-private]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        closeAllRowMenus();
+        const qid = btn.dataset.setPrivate;
+        const q = questions.find((item) => String(item.id) === String(qid));
+        if (!q || !q.is_mine) {
+          alert("You can only change privacy on your own questions.");
+          return;
+        }
+        const isPrivate = btn.dataset.makePrivate === "1";
+        const res = await fetch(`/api/questions/${qid}/private`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ private: isPrivate }),
+        });
+        let data = {};
+        try {
+          data = await res.json();
+        } catch {
+          data = {};
+        }
+        if (!res.ok) {
+          alert(
+            data.error ||
+              (res.status === 404
+                ? "Question not found. Restart the app if you just updated, then try again on your own question."
+                : "Could not update privacy")
+          );
+          return;
+        }
+        await loadQuestions();
       });
     });
     root.querySelectorAll("[data-del]").forEach((btn) => {
@@ -327,11 +499,11 @@
 
   function renderQuestions() {
     const mine = questions.filter((q) => q.is_mine);
-    const others = questions.filter((q) => !q.is_mine);
+    const others = questions.filter((q) => !q.is_mine && !q.is_fork);
     if (myCountEl) myCountEl.textContent = mine.length ? `${mine.length}` : "0";
     if (othersCountEl) othersCountEl.textContent = others.length ? `${others.length}` : "0";
-    renderGroupedList(myListRoot, mine, false);
-    renderGroupedList(othersListRoot, others, true);
+    renderGroupedList(myListRoot, mine, false, false);
+    renderGroupedList(othersListRoot, others, true, true);
     bindQuestionActions(myListRoot);
     bindQuestionActions(othersListRoot);
   }
@@ -398,6 +570,7 @@
     const prompt = document.getElementById("q-prompt").value.trim();
     const category_id = catSelect.value || null;
     const imageFile = imageInput.files[0];
+    const is_private = addQuestionPrivate;
 
     let res;
     if (task_type === "task1" && imageFile) {
@@ -405,6 +578,7 @@
       fd.append("title", title);
       fd.append("task_type", task_type);
       fd.append("prompt", prompt);
+      fd.append("is_private", is_private ? "1" : "0");
       if (category_id) fd.append("category_id", category_id);
       fd.append("image", imageFile);
       res = await fetch("/api/questions", { method: "POST", body: fd });
@@ -412,7 +586,13 @@
       res = await fetch("/api/questions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, task_type, prompt, category_id: category_id ? parseInt(category_id, 10) : null }),
+        body: JSON.stringify({
+          title,
+          task_type,
+          prompt,
+          category_id: category_id ? parseInt(category_id, 10) : null,
+          is_private,
+        }),
       });
     }
     const data = await res.json();

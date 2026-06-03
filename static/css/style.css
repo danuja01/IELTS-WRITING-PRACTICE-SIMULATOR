@@ -207,6 +207,48 @@ button:disabled {
   color: var(--accent);
 }
 
+.panel-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.panel-head-row h2 {
+  margin: 0;
+}
+
+.tabs-compact {
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.tabs-compact button {
+  flex: 0 1 auto;
+  min-width: 4.5rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.visibility-tabs button.active[data-vis="public"] {
+  background: #1a7f4b;
+  border-color: #1a7f4b;
+  color: #fff;
+}
+
+.visibility-tabs button.active[data-vis="private"] {
+  background: #b3261e;
+  border-color: #b3261e;
+  color: #fff;
+}
+
+.visibility-tabs button:not(.active) {
+  background: var(--panel);
+  color: var(--muted);
+}
+
 .q-list {
   list-style: none;
   padding: 0;
@@ -828,6 +870,188 @@ body.practice-page {
   background: var(--panel);
 }
 
+/* Others: nested zone inside main accordion (not same level as top headers) */
+.others-accordion-body {
+  padding: 0.65rem 0.75rem 0.85rem;
+  background: #eef1f4;
+  border-top: 1px solid var(--border);
+}
+
+.others-inner-hint {
+  margin: 0 0 0.6rem;
+  padding-left: 0.15rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.others-user-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.others-user-panel {
+  border: 1px solid #d5dbe3;
+  border-radius: 6px;
+  margin: 0;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  overflow: visible;
+}
+
+.others-user-panel:nth-child(even) {
+  background: #fcfdfe;
+}
+
+.others-user-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.7rem;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 600;
+  color: var(--text);
+  background: #f3f5f8;
+  border-radius: 6px 6px 0 0;
+  user-select: none;
+}
+
+.others-user-panel:not([open]) .others-user-head {
+  border-radius: 6px;
+}
+
+.others-user-panel[open] .others-user-head {
+  border-bottom: 1px solid #e2e6eb;
+  border-radius: 6px 6px 0 0;
+}
+
+.others-user-head::-webkit-details-marker {
+  display: none;
+}
+
+.others-user-head::before {
+  content: "▸";
+  display: inline-block;
+  margin-right: 0.35rem;
+  font-size: 0.65rem;
+  color: var(--muted);
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.others-user-panel[open] .others-user-head::before {
+  transform: rotate(90deg);
+}
+
+.others-user-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.others-user-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.others-user-panel:nth-child(even) .others-user-avatar {
+  background: #4a6a8a;
+}
+
+.others-user-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.others-user-count {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.others-user-body {
+  padding: 0.55rem 0.75rem 0.65rem;
+  background: #fafbfc;
+  border-radius: 0 0 6px 6px;
+}
+
+.others-cat-section {
+  margin-top: 0.55rem;
+  padding-top: 0.45rem;
+  border-top: 1px dashed #e4e8ed;
+}
+
+.others-cat-section:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.others-cat-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.others-q-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.others-q-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid #eef0f2;
+}
+
+.others-q-row:last-child {
+  border-bottom: none;
+}
+
+.others-q-row .q-row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.privacy-badge {
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+}
+
+.privacy-public {
+  color: #1a7f4b;
+}
+
+.privacy-private {
+  color: #b3261e;
+}
+
 .cat-header {
   display: flex;
   align-items: center;
@@ -867,7 +1091,6 @@ body.practice-page {
 
 .cat-questions {
   list-style: none;
-  margin: 0;
   padding: 0.5rem 0 0.5rem 1rem;
   border-left: 3px solid var(--accent);
   margin-left: 1rem;

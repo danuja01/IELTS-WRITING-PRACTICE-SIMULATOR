@@ -112,6 +112,11 @@ def _migrate(db):
     add_col("questions", "category_id", "INTEGER REFERENCES categories(id)")
     add_col("questions", "prompt_highlights", "TEXT")
     add_col("questions", "copied_from_id", "INTEGER REFERENCES questions(id) ON DELETE SET NULL")
+    add_col("questions", "is_private", "INTEGER NOT NULL DEFAULT 0")
+    db.execute(
+        "UPDATE questions SET is_private = 1 WHERE copied_from_id IS NOT NULL"
+    )
+    db.commit()
     add_col("writings", "paragraph_stats", "TEXT")
     db.commit()
 
@@ -285,9 +290,20 @@ def _question_json(row, for_user_id=None):
     cid = d.get("copied_from_id")
     d["is_fork"] = bool(cid)
     d["fork_count"] = int(d.get("fork_count") or 0)
+    d["is_private"] = bool(d.get("is_private"))
     if for_user_id is not None:
-        d["is_mine"] = d.get("user_id") == for_user_id
+        d["is_mine"] = int(d.get("user_id") or 0) == int(for_user_id)
     return d
+
+
+def _can_view_question(row, viewer_id: int) -> bool:
+    if not row:
+        return False
+    if int(row["user_id"]) == int(viewer_id):
+        return True
+    if row["copied_from_id"] if "copied_from_id" in row.keys() else None:
+        return False
+    return not bool(row["is_private"] if "is_private" in row.keys() else 0)
 
 
 def _question_detail_json(row):
@@ -949,6 +965,29 @@ def move_question(qid):
     return jsonify({"ok": True})
 
 
+@app.route("/api/questions/<int:qid>/private", methods=["POST"])
+@student_required
+def set_question_private(qid):
+    data = request.get_json(silent=True) or {}
+    if "private" not in data:
+        return jsonify({"error": "private (true/false) required"}), 400
+    is_private = 1 if data.get("private") else 0
+    db = get_db()
+    row = db.execute(
+        "SELECT id, user_id FROM questions WHERE id = ?",
+        (qid,),
+    ).fetchone()
+    if not row:
+        return jsonify({"error": "question not found"}), 404
+    if row["user_id"] != session["user_id"]:
+        return jsonify({
+            "error": "You can only change privacy on your own questions (not copies in Others).",
+        }), 403
+    db.execute("UPDATE questions SET is_private = ? WHERE id = ?", (is_private, qid))
+    db.commit()
+    return jsonify({"ok": True, "is_private": bool(is_private)})
+
+
 @app.route("/api/questions/<int:qid>/copy", methods=["POST"])
 @student_required
 def copy_question(qid):
@@ -962,6 +1001,8 @@ def copy_question(qid):
         (qid,),
     ).fetchone()
     if not source:
+        return jsonify({"error": "not found"}), 404
+    if not _can_view_question(source, uid):
         return jsonify({"error": "not found"}), 404
     if source["user_id"] == uid:
         return jsonify({"error": "already in My questions"}), 400
@@ -985,8 +1026,8 @@ def copy_question(qid):
 
     cur = db.execute(
         """INSERT INTO questions
-           (user_id, category_id, title, prompt, task_type, copied_from_id, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+           (user_id, category_id, title, prompt, task_type, copied_from_id, is_private, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, 1, ?)""",
         (
             uid,
             category_id,
@@ -1033,7 +1074,10 @@ def list_questions():
            FROM questions q
            LEFT JOIN categories c ON c.id = q.category_id
            JOIN users u ON u.id = q.user_id
+           WHERE q.user_id = ?
+              OR (q.copied_from_id IS NULL AND IFNULL(q.is_private, 0) = 0)
            ORDER BY (c.name IS NULL), c.name, q.id DESC""",
+        (uid,),
     ).fetchall()
     return jsonify([_question_json(r, for_user_id=uid) for r in rows])
 
@@ -1042,6 +1086,7 @@ def list_questions():
 @student_required
 def create_question():
     category_id = None
+    is_private = 0
     if request.content_type and "multipart/form-data" in request.content_type:
         title = (request.form.get("title") or "Untitled").strip()[:200]
         prompt = (request.form.get("prompt") or "").strip()
@@ -1049,6 +1094,8 @@ def create_question():
         image_file = request.files.get("image")
         raw_cat = request.form.get("category_id")
         category_id = int(raw_cat) if raw_cat and raw_cat.isdigit() else None
+        raw_private = request.form.get("is_private", "0")
+        is_private = 1 if str(raw_private).lower() in ("1", "true", "yes") else 0
     else:
         data = request.get_json(silent=True) or {}
         title = (data.get("title") or "Untitled").strip()[:200]
@@ -1056,6 +1103,8 @@ def create_question():
         task_type = (data.get("task_type") or "task2").strip()[:20]
         image_file = None
         category_id = data.get("category_id")
+        if data.get("is_private"):
+            is_private = 1
 
     if not prompt:
         return jsonify({"error": "prompt required"}), 400
@@ -1070,9 +1119,9 @@ def create_question():
             return jsonify({"error": "category not found"}), 404
 
     cur = db.execute(
-        """INSERT INTO questions (user_id, category_id, title, prompt, task_type, created_at)
-           VALUES (?, ?, ?, ?, ?, ?)""",
-        (session["user_id"], category_id, title, prompt, task_type, now_iso()),
+        """INSERT INTO questions (user_id, category_id, title, prompt, task_type, is_private, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (session["user_id"], category_id, title, prompt, task_type, is_private, now_iso()),
     )
     db.commit()
     qid = cur.lastrowid
@@ -1103,6 +1152,8 @@ def get_question(qid):
     ).fetchone()
     if not row:
         return jsonify({"error": "not found"}), 404
+    if not _can_view_question(row, session["user_id"]):
+        return jsonify({"error": "not found"}), 404
     return jsonify(_question_json(row, for_user_id=session["user_id"]))
 
 
@@ -1115,9 +1166,11 @@ def question_image(qid):
         ).fetchone()
     else:
         row = get_db().execute(
-            "SELECT image_path FROM questions WHERE id = ?",
+            "SELECT user_id, image_path, is_private FROM questions WHERE id = ?",
             (qid,),
         ).fetchone()
+        if not row or not _can_view_question(row, session["user_id"]):
+            abort(404)
     if not row or not row["image_path"]:
         abort(404)
     parent = os.path.join(UPLOAD_DIR, os.path.dirname(row["image_path"]))

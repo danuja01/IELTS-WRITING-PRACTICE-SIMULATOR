@@ -23,7 +23,13 @@
       <ul class="tag-list" id="category-list"></ul>
     </section>
     <section class="panel">
-      <h2>Add question</h2>
+      <div class="panel-head-row">
+        <h2>Add question</h2>
+        <div class="tabs tabs-compact visibility-tabs" role="tablist" aria-label="Question visibility">
+          <button type="button" id="q-vis-public" class="active" data-vis="public">Public</button>
+          <button type="button" id="q-vis-private" data-vis="private">Private</button>
+        </div>
+      </div>
       <form id="add-question-form">
         <label for="q-title">Title</label>
         <input type="text" id="q-title" placeholder="e.g. Essay - Technology" required>
@@ -61,7 +67,7 @@
             <span class="accordion-title">Others</span>
             <span class="accordion-count" id="others-question-count"></span>
           </summary>
-          <div class="accordion-body" id="others-question-list"></div>
+          <div class="accordion-body others-accordion-body" id="others-question-list"></div>
         </details>
       </div>
     </section>

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.3.0
+
+Sharing and privacy:
+
+- **Others** section (renamed from All): other users’ **original** questions only — no forks
+- Grouped by **author** (collapsible), then category; clearer nested layout inside main Others accordion
+- **Make private / Make public** on your questions via ⋮ menu; colored Public/Private labels
+- Private questions hidden from Others; forks default to **private** (can be made public)
+- **Add question**: Public / Private tabs next to title; choice **persisted in localStorage**
+
 ## 2.2.1
 
 - Home: rename **All** accordion to **Others**; list every other user’s questions (not yours)
