@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.16
+
+- All section shows only other users’ questions; copies appear in My questions only (no duplicates)
+
 ## 2.0.15
 
 - Fix Move to… dropdown: load categories before questions so all user categories appear

@@ -233,10 +233,11 @@
 
   function renderQuestions() {
     const mine = questions.filter((q) => q.is_mine);
+    const allShared = questions.filter((q) => !q.is_mine);
     if (myCountEl) myCountEl.textContent = mine.length ? `${mine.length}` : "0";
-    if (allCountEl) allCountEl.textContent = questions.length ? `${questions.length}` : "0";
+    if (allCountEl) allCountEl.textContent = allShared.length ? `${allShared.length}` : "0";
     renderGroupedList(myListRoot, mine, false);
-    renderGroupedList(allListRoot, questions, true);
+    renderGroupedList(allListRoot, allShared, true);
     bindQuestionActions(myListRoot);
     bindQuestionActions(allListRoot);
   }
