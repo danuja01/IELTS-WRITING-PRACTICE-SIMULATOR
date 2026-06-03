@@ -1,14 +1,19 @@
-"""IELTS Writing Practice — Flask + SQLite."""
+"""IELTS Writing Practice - Flask + SQLite."""
 import json
 import os
 import re
 import secrets
 import shutil
 import sqlite3
+import time
 from contextlib import closing
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from flask import (
     Flask,
@@ -27,6 +32,7 @@ from werkzeug.utils import secure_filename
 
 from backup import start_backup_scheduler
 from db_util import connect_sqlite
+from mail_util import send_mail, smtp_configured
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.environ.get("IELTS_DB", os.path.join(APP_DIR, "data", "app.db"))
@@ -38,6 +44,20 @@ EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 SETUP_WHITELIST = {"/setup-admin", "/api/setup-admin", "/api/version"}
 CHANGE_PW_WHITELIST = {"/change-password", "/api/change-password", "/api/logout"}
+PASSWORD_RESET_WHITELIST = {
+    "/login",
+    "/forgot-password",
+    "/reset-password",
+    "/api/login",
+    "/api/register",
+    "/api/forgot-password",
+    "/api/reset-password",
+    "/api/logout",
+    "/api/version",
+}
+
+_FORGOT_RATE: dict[str, float] = {}
+RESET_CODE_MINUTES = max(5, min(120, int(os.environ.get("RESET_CODE_MINUTES", "30"))))
 
 
 def _load_version() -> str:
@@ -102,6 +122,16 @@ def _migrate(db):
             name TEXT NOT NULL,
             sort_order INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL
+        )"""
+    )
+    db.execute(
+        """CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            code_hash TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            used_at TEXT
         )"""
     )
     db.commit()
@@ -389,7 +419,7 @@ def before_request():
         return None
 
     if "user_id" in session and session.get("must_change_password"):
-        if path not in CHANGE_PW_WHITELIST and not path.startswith("/static/"):
+        if path not in CHANGE_PW_WHITELIST and path not in PASSWORD_RESET_WHITELIST and not path.startswith("/static/"):
             if path.startswith("/api/"):
                 return jsonify({"error": "password change required"}), 403
             return redirect(url_for("change_password"))
@@ -419,7 +449,7 @@ def handle_sqlite_operational_error(exc):
     app.logger.warning("SQLite operational error: %s", exc)
     msg = str(exc).lower()
     if "locked" in msg or "busy" in msg:
-        body = {"error": "Database busy — please refresh in a moment."}
+        body = {"error": "Database busy - please refresh in a moment."}
         if request.path.startswith("/api/"):
             return jsonify(body), 503
         return render_template("error.html", message=body["error"], code=503), 503
@@ -563,6 +593,174 @@ def api_login():
         "is_admin": bool(row["is_admin"]),
         "must_change_password": bool(row["must_change_password"]),
     })
+
+
+def _normalize_email(email: str) -> str:
+    return (email or "").strip().lower()
+
+
+def _forgot_rate_key() -> str:
+    return request.remote_addr or "unknown"
+
+
+def _check_forgot_rate_limit() -> bool:
+    key = _forgot_rate_key()
+    now = time.time()
+    last = _FORGOT_RATE.get(key, 0)
+    if now - last < 60:
+        return False
+    _FORGOT_RATE[key] = now
+    return True
+
+
+def _generate_reset_code() -> str:
+    return f"{secrets.randbelow(1000000):06d}"
+
+
+def _password_reset_expires_iso() -> str:
+    return (datetime.now(timezone.utc) + timedelta(minutes=RESET_CODE_MINUTES)).isoformat()
+
+
+def _forgot_password_ok_message() -> str:
+    return (
+        "If an account with that email exists, we sent a 6-digit reset code. "
+        "Check your inbox (and spam folder)."
+    )
+
+
+@app.route("/forgot-password", methods=["GET"], endpoint="forgot_password")
+def forgot_password_page():
+    if not has_admin():
+        return redirect(url_for("setup_admin"))
+    if "user_id" in session:
+        return redirect(_login_redirect_url())
+    return render_template("forgot_password.html")
+
+
+@app.route("/reset-password", methods=["GET"], endpoint="reset_password")
+def reset_password_page():
+    if not has_admin():
+        return redirect(url_for("setup_admin"))
+    if "user_id" in session:
+        return redirect(_login_redirect_url())
+    email = (request.args.get("email") or "").strip()
+    return render_template("reset_password.html", email=email)
+
+
+@app.route("/api/forgot-password", methods=["POST"])
+def api_forgot_password():
+    if not has_admin():
+        return jsonify({"error": "setup required"}), 503
+    if not smtp_configured():
+        return jsonify({
+            "error": "Password reset email is not configured. Set SMTP_* in your .env file.",
+        }), 503
+    if not _check_forgot_rate_limit():
+        return jsonify({"error": "Please wait a minute before requesting another code."}), 429
+
+    data = request.get_json(silent=True) or {}
+    email = _normalize_email(data.get("email") or "")
+    if not email or not EMAIL_RE.match(email):
+        return jsonify({"error": "valid email required"}), 400
+
+    db = get_db()
+    row = db.execute(
+        "SELECT id, username, email FROM users WHERE LOWER(TRIM(COALESCE(email, ''))) = ?",
+        (email,),
+    ).fetchone()
+
+    if row and row["email"]:
+        code = _generate_reset_code()
+        expires = _password_reset_expires_iso()
+        created = now_iso()
+        db.execute(
+            "UPDATE password_reset_tokens SET used_at = ? WHERE user_id = ? AND used_at IS NULL",
+            (created, row["id"]),
+        )
+        db.execute(
+            """INSERT INTO password_reset_tokens (user_id, code_hash, expires_at, created_at)
+               VALUES (?, ?, ?, ?)""",
+            (row["id"], generate_password_hash(code), expires, created),
+        )
+        db.commit()
+        try:
+            send_mail(
+                row["email"].strip(),
+                "IELTS Writing Practice — password reset code",
+                (
+                    f"Hello {row['username']},\n\n"
+                    f"Your password reset code is: {code}\n\n"
+                    f"This code expires in {RESET_CODE_MINUTES} minutes.\n\n"
+                    "If you did not request this, you can ignore this email.\n"
+                ),
+            )
+        except Exception as exc:
+            app.logger.exception("Failed to send reset email: %s", exc)
+            return jsonify({"error": "Could not send email. Check SMTP settings."}), 500
+
+    return jsonify({"ok": True, "message": _forgot_password_ok_message()})
+
+
+@app.route("/api/reset-password", methods=["POST"])
+def api_reset_password():
+    if not has_admin():
+        return jsonify({"error": "setup required"}), 503
+
+    data = request.get_json(silent=True) or {}
+    email = _normalize_email(data.get("email") or "")
+    code = (data.get("code") or "").strip()
+    password = data.get("password") or ""
+    confirm = data.get("confirm") or ""
+
+    if not email or not EMAIL_RE.match(email):
+        return jsonify({"error": "valid email required"}), 400
+    if not re.fullmatch(r"\d{6}", code):
+        return jsonify({"error": "enter the 6-digit code from your email"}), 400
+    if len(password) < 4:
+        return jsonify({"error": "password must be at least 4 characters"}), 400
+    if password != confirm:
+        return jsonify({"error": "passwords do not match"}), 400
+
+    db = get_db()
+    user = db.execute(
+        "SELECT id FROM users WHERE LOWER(TRIM(COALESCE(email, ''))) = ?",
+        (email,),
+    ).fetchone()
+    if not user:
+        return jsonify({"error": "invalid or expired reset code"}), 400
+
+    token = db.execute(
+        """SELECT id, code_hash, expires_at FROM password_reset_tokens
+           WHERE user_id = ? AND used_at IS NULL
+           ORDER BY id DESC LIMIT 1""",
+        (user["id"],),
+    ).fetchone()
+    if not token:
+        return jsonify({"error": "invalid or expired reset code"}), 400
+
+    try:
+        expires = datetime.fromisoformat(token["expires_at"].replace("Z", "+00:00"))
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+    except ValueError:
+        return jsonify({"error": "invalid or expired reset code"}), 400
+
+    if datetime.now(timezone.utc) > expires:
+        return jsonify({"error": "reset code has expired — request a new one"}), 400
+    if not check_password_hash(token["code_hash"], code):
+        return jsonify({"error": "invalid or expired reset code"}), 400
+
+    used = now_iso()
+    db.execute(
+        "UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?",
+        (generate_password_hash(password), user["id"]),
+    )
+    db.execute(
+        "UPDATE password_reset_tokens SET used_at = ? WHERE id = ?",
+        (used, token["id"]),
+    )
+    db.commit()
+    return jsonify({"ok": True, "message": "Password updated. You can log in now.", "redirect": url_for("login")})
 
 
 @app.route("/api/change-password", methods=["POST"])

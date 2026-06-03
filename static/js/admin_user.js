@@ -33,7 +33,7 @@
   }
 
   function fmtMs(ms) {
-    if (ms == null) return "—";
+    if (ms == null) return "-";
     const sec = Math.floor(ms / 1000);
     const m = Math.floor(sec / 60);
     const s = sec % 60;

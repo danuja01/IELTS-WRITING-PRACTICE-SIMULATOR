@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.2.0
+
+- Forgot password: email with 6-digit reset code (SMTP via `.env`)
+- Login page link to forgot / reset password flows
+- Single `docker-compose.yml` with `env_file: .env` (removed extra compose files)
+
+## 2.1.3
+
+- Practice screen: hide elapsed timer during writing; show time remaining only
+
+## 2.1.2
+
+- Fix three-dot question menu clipped/hidden inside category cards (fixed positioning + overflow)
+
+## 2.1.1
+
+- Practice footer: centered word count; removed auto-save label and selected-word line (selection count stays on right-click menu only)
+
 ## 2.1.0
 
 - Home: Start only on question rows; Move and Delete in a three-dot menu (bin icon)
@@ -44,7 +62,7 @@
 
 ## 2.0.9
 
-- **Copy to My** on shared questions in All — duplicates question (and chart image) into your My questions list
+- **Copy to My** on shared questions in All - duplicates question (and chart image) into your My questions list
 
 ## 2.0.8
 

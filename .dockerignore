@@ -5,6 +5,3 @@ __pycache__
 data
 .git
 .env
-*.md
-docker-compose*.yml
-.agent

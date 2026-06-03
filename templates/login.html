@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>IELTS Writing Practice — Login</title>
+  <title>IELTS Writing Practice - Login</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
@@ -25,6 +25,9 @@
         </div>
         <label for="password">Password</label>
         <input type="password" id="password" name="password" autocomplete="current-password" required>
+        <p class="auth-links" id="forgot-link-wrap">
+          <a href="{{ url_for('forgot_password') }}">Forgot password?</a>
+        </p>
         <button type="submit" id="submit-btn">Login</button>
       </form>
     </div>

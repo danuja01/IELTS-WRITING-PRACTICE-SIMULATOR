@@ -15,6 +15,8 @@
     submitBtn.textContent = m === "login" ? "Login" : "Register";
     emailWrap.hidden = m !== "register";
     emailInput.required = m === "register";
+    const forgotWrap = document.getElementById("forgot-link-wrap");
+    if (forgotWrap) forgotWrap.hidden = m !== "login";
     msg.textContent = "";
     msg.className = "msg";
   }

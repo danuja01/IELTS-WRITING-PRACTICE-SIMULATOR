@@ -7,7 +7,6 @@
   const timerMain = document.getElementById("timer-main");
   const timerLabel = document.getElementById("timer-label");
   const timerDisplay = document.getElementById("timer-display");
-  const elapsedMain = document.getElementById("elapsed-main");
   const startBtn = document.getElementById("start-btn");
   const finishBtn = document.getElementById("finish-btn");
   const saveStatus = document.getElementById("save-status");
@@ -18,7 +17,6 @@
   const resultStats = document.getElementById("result-stats");
   const essayMenu = document.getElementById("essay-context-menu");
   const promptMenu = document.getElementById("prompt-context-menu");
-  const selWordEl = document.getElementById("sel-word-count");
   const promptToolbar = document.getElementById("prompt-toolbar");
   const promptHighlightBtn = document.getElementById("prompt-highlight-btn");
   const chartSizeControl = document.getElementById("chart-size-control");
@@ -55,7 +53,6 @@
 
   function saveEssaySelection() {
     savedEssaySel = { start: essay.selectionStart, end: essay.selectionEnd };
-    updateSelectedWordDisplay();
   }
 
   function getEssaySel() {
@@ -66,19 +63,6 @@
       end = savedEssaySel.end;
     }
     return { start, end };
-  }
-
-  function updateSelectedWordDisplay() {
-    if (!selWordEl) return;
-    const { start, end } = getEssaySel();
-    if (start >= end) {
-      selWordEl.hidden = true;
-      selWordEl.textContent = "";
-      return;
-    }
-    const wc = countWords(essay.value.slice(start, end));
-    selWordEl.hidden = false;
-    selWordEl.textContent = `Selected: ${wc} word${wc === 1 ? "" : "s"}`;
   }
 
   function showEssayWordMenu(clientX, clientY) {
@@ -342,7 +326,6 @@
   function updateTimer() {
     if (!started || !startTime) return;
     const elapsed = Date.now() - startTime;
-    elapsedMain.textContent = formatClock(elapsed);
     const remaining = examLimitMs - elapsed;
     if (remaining > 0) {
       timerMain.textContent = formatClock(remaining);
@@ -465,7 +448,7 @@
       sessionHighlights = loadStoredHighlights();
       refreshPromptHighlights();
       updateWordCount();
-      saveStatus.textContent = "Draft loaded — click Start to continue timing";
+      saveStatus.textContent = "Draft loaded - click Start to continue timing";
     }
   }
 

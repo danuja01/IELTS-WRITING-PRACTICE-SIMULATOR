@@ -1,10 +1,24 @@
+# IELTS Writing Practice
+#
+# Setup:
+#   cp .env.example .env    # edit SECRET_KEY, SMTP, etc.
+#   docker compose up -d --build
+#
+# Data is stored in ./data (change the volume path on NAS if needed).
+# Pre-built image (optional): comment out `build:` and uncomment `image:` below.
+
 services:
   ielts-writing:
+    container_name: ielts-writing
     build: .
+    # image: ghcr.io/danuja01/ielts-writing-practice-simulator:latest
     ports:
       - "5050:5050"
+    env_file:
+      - .env
     environment:
-      SECRET_KEY: change-this-on-your-nas
+      PORT: "5050"
+      IELTS_DB: /app/data/app.db
     volumes:
       - ./data:/app/data
     restart: unless-stopped

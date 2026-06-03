@@ -1,6 +1,6 @@
 # IELTS Writing Practice (lightweight)
 
-**Version 2.0.0** — see [CHANGELOG.md](CHANGELOG.md)
+**Version 2.0.0** - see [CHANGELOG.md](CHANGELOG.md)
 
 Minimal practice app for IELTS-style writing with admin panel, categories, paragraph analytics, and writing history.
 
@@ -8,7 +8,7 @@ Minimal practice app for IELTS-style writing with admin panel, categories, parag
 
 Features: split question/answer layout, word count, adjustable text size, 40-minute timer (turns red after 40 min but keeps running), simple login, and saved drafts.
 
-**Stack:** Python Flask + SQLite + vanilla HTML/CSS/JS (no Node build, low RAM — typically ~30–50 MB).
+**Stack:** Python Flask + SQLite + vanilla HTML/CSS/JS (no Node build, low RAM - typically ~30–50 MB).
 
 ## Run locally
 
@@ -23,29 +23,36 @@ python app.py
 
 Open http://localhost:5050
 
-**Docker / NAS** uses [Gunicorn](https://gunicorn.org/) (production WSGI server), not Flask’s dev server. — register a user, add a question, click **Start**.
+**Docker / NAS** uses [Gunicorn](https://gunicorn.org/) (production WSGI server), not Flask’s dev server. - register a user, add a question, click **Start**.
 
 ## Run on NAS (Docker)
 
 ```bash
+cp .env.example .env   # edit SECRET_KEY, SMTP, etc.
 docker compose up -d --build
 ```
 
-Set `SECRET_KEY` in `docker-compose.yml`. Data persists in `./data/`.
+Open http://your-nas:5050
+
+- Config comes from **`.env`** (loaded by `env_file` in `docker-compose.yml`).
+- Data persists in **`./data`** — on a NAS, change the volume in `docker-compose.yml` to your appdata path (see [NAS-DOCKGE.md](NAS-DOCKGE.md)).
+- Optional: use the GHCR image instead of building — comment `build:` and uncomment `image:` in `docker-compose.yml`.
 
 ## Features
 
-- **Login / register** — per-user questions and writings
-- **Add your own questions** — Task 1 or Task 2
-- **Practice screen** — question left, writing right (IELTS-like)
-- **Word count** — live
-- **Text controls** — font size and line spacing sliders
-- **40 min timer** — countdown; at 0:00 turns red and shows overtime; writing never stops
-- **At finish** — total time, words at 40 min, cursor position at 40 min
+- **Login / register** - per-user questions and writings; **forgot password** via email reset code (SMTP)
+- **Add your own questions** - Task 1 or Task 2
+- **Practice screen** - question left, writing right (IELTS-like)
+- **Word count** - live
+- **Text controls** - font size and line spacing sliders
+- **40 min timer** - countdown; at 0:00 turns red and shows overtime; writing never stops
+- **At finish** - total time, words at 40 min, cursor position at 40 min
 - **Auto-save** every 15 seconds
-- **Weekly DB backup** — one rolling copy in `data/backups/` (Docker: your appdata volume)
+- **Weekly DB backup** - one rolling copy in `data/backups/` (Docker: your appdata volume)
 
 ## Environment
+
+Copy `.env.example` to `.env` and set values (`.env` is not committed).
 
 | Variable     | Default              |
 |-------------|----------------------|
@@ -54,6 +61,22 @@ Set `SECRET_KEY` in `docker-compose.yml`. Data persists in `./data/`.
 | `IELTS_DB`  | `./data/app.db`      |
 | `BACKUP_ENABLED` | `1`             |
 | `BACKUP_INTERVAL_DAYS` | `7`      |
+| `SMTP_HOST` | — (required for password reset emails) |
+| `SMTP_PORT` | `587` |
+| `SMTP_USER` | — |
+| `SMTP_PASSWORD` | — |
+| `SMTP_FROM` | falls back to `SMTP_USER` |
+| `SMTP_USE_TLS` | `1` |
+| `SMTP_ENABLED` | `1` |
+| `RESET_CODE_MINUTES` | `30` |
+
+### Forgot password (SMTP)
+
+1. Copy `.env.example` → `.env` and fill in SMTP (Gmail: use an [App Password](https://support.google.com/accounts/answer/185833)).
+2. Users must have an **email** on their account (set at registration).
+3. On login, click **Forgot password?** → enter email → enter the 6-digit code on the reset page.
+
+For Docker/Dockge, copy `.env.example` to `.env` next to `docker-compose.yml` (see [NAS-DOCKGE.md](NAS-DOCKGE.md)).
 
 Backups on NAS: `appdata/ielts-writing/backups/app.db.latest.bak`
 

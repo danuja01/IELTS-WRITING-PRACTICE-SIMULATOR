@@ -22,12 +22,54 @@
 
   function closeAllRowMenus() {
     document.querySelectorAll(".row-menu-dropdown.is-open").forEach((el) => {
-      el.classList.remove("is-open");
+      el.classList.remove("is-open", "drop-up");
       el.hidden = true;
+      el.style.position = "";
+      el.style.left = "";
+      el.style.top = "";
+      el.style.zIndex = "";
     });
     document.querySelectorAll(".row-menu-btn[aria-expanded='true']").forEach((btn) => {
       btn.setAttribute("aria-expanded", "false");
     });
+    document.querySelectorAll(".q-row.menu-open").forEach((row) => row.classList.remove("menu-open"));
+  }
+
+  function positionRowMenu(btn, panel) {
+    panel.classList.remove("drop-up");
+    panel.hidden = false;
+    panel.classList.add("is-open");
+    panel.style.position = "fixed";
+    panel.style.zIndex = "200";
+    panel.style.right = "auto";
+    panel.style.bottom = "auto";
+
+    const btnRect = btn.getBoundingClientRect();
+    const panelRect = panel.getBoundingClientRect();
+    const w = panelRect.width;
+    const h = panelRect.height;
+    const margin = 8;
+
+    let left = btnRect.right - w;
+    if (left < margin) left = margin;
+    if (left + w > window.innerWidth - margin) left = window.innerWidth - w - margin;
+
+    let top = btnRect.bottom + 4;
+    if (top + h > window.innerHeight - margin) {
+      top = btnRect.top - h - 4;
+      panel.classList.add("drop-up");
+    }
+    if (top < margin) top = margin;
+
+    panel.style.left = `${left}px`;
+    panel.style.top = `${top}px`;
+  }
+
+  function openRowMenu(btn, panel) {
+    const row = btn.closest(".q-row");
+    if (row) row.classList.add("menu-open");
+    positionRowMenu(btn, panel);
+    btn.setAttribute("aria-expanded", "true");
   }
 
   function initExclusiveAccordions() {
@@ -62,7 +104,7 @@
   }
 
   function fmtMs(ms) {
-    if (ms == null) return "—";
+    if (ms == null) return "-";
     const sec = Math.floor(ms / 1000);
     const m = Math.floor(sec / 60);
     const s = sec % 60;
@@ -238,11 +280,7 @@
         if (!panel) return;
         const open = panel.classList.contains("is-open");
         closeAllRowMenus();
-        if (!open) {
-          panel.hidden = false;
-          panel.classList.add("is-open");
-          btn.setAttribute("aria-expanded", "true");
-        }
+        if (!open) openRowMenu(btn, panel);
       });
     });
     root.querySelectorAll("[data-del]").forEach((btn) => {
@@ -392,6 +430,8 @@
   toggleTask1Image();
   initExclusiveAccordions();
   document.addEventListener("click", () => closeAllRowMenus());
+  window.addEventListener("scroll", () => closeAllRowMenus(), true);
+  window.addEventListener("resize", () => closeAllRowMenus());
   (async () => {
     await loadCategories();
     await loadQuestions();
