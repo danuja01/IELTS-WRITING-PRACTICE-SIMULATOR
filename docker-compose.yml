@@ -6,6 +6,10 @@
 #
 # Data is stored in ./data (change the volume path on NAS if needed).
 # Pre-built image (optional): comment out `build:` and uncomment `image:` below.
+#
+# Optional PostgreSQL (high concurrency):
+#   Set DB_TYPE=postgres and POSTGRES_PASSWORD in .env, then:
+#   docker compose --profile postgres up -d --build
 
 services:
   ielts-writing:
@@ -19,6 +23,29 @@ services:
     environment:
       PORT: "5050"
       IELTS_DB: /app/data/app.db
+      DB_TYPE: ${DB_TYPE:-sqlite}
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-1}
+      GUNICORN_THREADS: ${GUNICORN_THREADS:-1}
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-ielts_writing}
+      POSTGRES_USER: ${POSTGRES_USER:-ielts}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
     volumes:
       - ./data:/app/data
     restart: unless-stopped
+
+  postgres:
+    profiles: ["postgres"]
+    image: postgres:16-alpine
+    container_name: ielts-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ielts_writing}
+      POSTGRES_USER: ${POSTGRES_USER:-ielts}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  postgres-data:

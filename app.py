@@ -6,7 +6,6 @@ import secrets
 import shutil
 import sqlite3
 import time
-from contextlib import closing
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
@@ -31,7 +30,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
 from backup import start_backup_scheduler
-from db_util import connect_sqlite
+from db_adapter import connect_db, init_database, is_sqlite
 from mail_util import send_mail, smtp_configured
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -79,7 +78,7 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 def get_db():
     if "db" not in g:
         os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-        g.db = connect_sqlite(DB_PATH)
+        g.db = connect_db(DB_PATH)
     return g.db
 
 
@@ -99,99 +98,8 @@ def has_admin():
     return row is not None
 
 
-def _migrate(db):
-    def add_col(table, col, typedef):
-        cols = {r[1] for r in db.execute(f"PRAGMA table_info({table})").fetchall()}
-        if col not in cols:
-            db.execute(f"ALTER TABLE {table} ADD COLUMN {col} {typedef}")
-
-    add_col("users", "email", "TEXT")
-    add_col("users", "is_admin", "INTEGER NOT NULL DEFAULT 0")
-    add_col("users", "must_change_password", "INTEGER NOT NULL DEFAULT 0")
-    add_col("questions", "image_path", "TEXT")
-    add_col("questions", "category_id", "INTEGER REFERENCES categories(id)")
-    add_col("questions", "prompt_highlights", "TEXT")
-    add_col("questions", "copied_from_id", "INTEGER REFERENCES questions(id) ON DELETE SET NULL")
-    add_col("questions", "is_private", "INTEGER NOT NULL DEFAULT 0")
-    db.execute(
-        "UPDATE questions SET is_private = 1 WHERE copied_from_id IS NOT NULL"
-    )
-    db.commit()
-    add_col("writings", "paragraph_stats", "TEXT")
-    db.commit()
-
-    db.execute(
-        """CREATE TABLE IF NOT EXISTS categories (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            name TEXT NOT NULL,
-            sort_order INTEGER NOT NULL DEFAULT 0,
-            created_at TEXT NOT NULL
-        )"""
-    )
-    db.execute(
-        """CREATE TABLE IF NOT EXISTS password_reset_tokens (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            code_hash TEXT NOT NULL,
-            expires_at TEXT NOT NULL,
-            created_at TEXT NOT NULL,
-            used_at TEXT
-        )"""
-    )
-    db.commit()
-
-
 def init_db():
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    with closing(connect_sqlite(DB_PATH)) as db:
-        db.executescript(
-            """
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
-                email TEXT,
-                is_admin INTEGER NOT NULL DEFAULT 0,
-                must_change_password INTEGER NOT NULL DEFAULT 0,
-                created_at TEXT NOT NULL
-            );
-            CREATE TABLE IF NOT EXISTS categories (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                name TEXT NOT NULL,
-                sort_order INTEGER NOT NULL DEFAULT 0,
-                created_at TEXT NOT NULL
-            );
-            CREATE TABLE IF NOT EXISTS questions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
-                title TEXT NOT NULL,
-                prompt TEXT NOT NULL,
-                task_type TEXT DEFAULT 'task2',
-                image_path TEXT,
-                prompt_highlights TEXT,
-                created_at TEXT NOT NULL
-            );
-            CREATE TABLE IF NOT EXISTS writings (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                question_id INTEGER REFERENCES questions(id) ON DELETE SET NULL,
-                content TEXT NOT NULL DEFAULT '',
-                started_at TEXT,
-                finished_at TEXT,
-                elapsed_ms INTEGER,
-                at_40min_ms INTEGER,
-                words_at_40min INTEGER,
-                final_words INTEGER,
-                paragraph_stats TEXT,
-                updated_at TEXT NOT NULL
-            );
-            """
-        )
-        db.commit()
-        _migrate(db)
+    init_database(DB_PATH)
 
 
 def _save_question_image(file_storage, user_id: int, question_id: int) -> str:
@@ -484,7 +392,8 @@ def handle_internal_error(exc):
 
 with app.app_context():
     init_db()
-    start_backup_scheduler(DB_PATH, DATA_DIR)
+    if is_sqlite():
+        start_backup_scheduler(DB_PATH, DATA_DIR)
 
 
 @app.context_processor

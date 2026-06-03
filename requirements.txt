@@ -2,3 +2,4 @@ flask>=3.0.0,<4
 werkzeug>=3.0.0,<4
 gunicorn>=22.0.0,<24
 python-dotenv>=1.0.0,<2
+psycopg2-binary>=2.9.0,<3

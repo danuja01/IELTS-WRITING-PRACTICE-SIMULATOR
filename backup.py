@@ -99,6 +99,9 @@ def maybe_run_backup(db_path: str, data_dir: str) -> bool:
 
 
 def start_backup_scheduler(db_path: str, data_dir: str) -> None:
+    if os.environ.get("DB_TYPE", "sqlite").strip().lower() == "postgres":
+        log.info("scheduled backups disabled (DB_TYPE=postgres)")
+        return
     if not backups_enabled():
         log.info("scheduled backups disabled (BACKUP_ENABLED=0)")
         return

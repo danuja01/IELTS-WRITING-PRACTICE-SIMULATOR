@@ -1,6 +1,9 @@
 (function () {
   let examLimitMs = 40 * 60 * 1000;
   const qid = window.QUESTION_ID;
+  const LOCAL_DRAFT_INTERVAL_MS = 30000;
+  const DB_SYNC_INTERVAL_MS = 60000;
+  const LOCAL_DRAFT_KEY = `ielts-draft-${qid}`;
 
   const essay = document.getElementById("essay");
   const wordEl = document.getElementById("word-count");
@@ -27,8 +30,10 @@
   let started = false;
   let startTime = null;
   let tickInterval = null;
-  let saveInterval = null;
+  let localDraftInterval = null;
+  let dbSyncInterval = null;
   let paraInterval = null;
+  let exitFlushDone = false;
   let at40Recorded = false;
   let snapshot40 = { ms: null, words: 0, caret: 0 };
   let paragraphTimes = [];
@@ -343,9 +348,102 @@
           words: countWords(essay.value),
           caret: essay.selectionStart,
         };
+        saveToLocalStorage();
         saveDraft(false);
       }
     }
+  }
+
+  function buildDraftPayload(finish) {
+    tickParagraphTime();
+    const elapsed = started && startTime ? Date.now() - startTime : null;
+    return {
+      id: writingId,
+      question_id: qid,
+      content: essay.value,
+      started_at: startTime ? new Date(startTime).toISOString() : undefined,
+      elapsed_ms: elapsed,
+      at_40min_ms: snapshot40.ms,
+      words_at_40min: snapshot40.ms != null ? snapshot40.words : null,
+      finish: !!finish,
+      final_words: finish ? countWords(essay.value) : null,
+      paragraph_stats: finish || started ? buildParagraphStats() : null,
+    };
+  }
+
+  function buildLocalDraftData() {
+    return {
+      content: essay.value,
+      writingId: writingId,
+      started: started,
+      startTime: startTime,
+      paragraphTimes: paragraphTimes,
+      snapshot40: snapshot40,
+      at40Recorded: at40Recorded,
+      timestamp: Date.now(),
+    };
+  }
+
+  function saveToLocalStorage() {
+    if (!started && !writingId && !essay.value.trim()) return;
+    try {
+      localStorage.setItem(LOCAL_DRAFT_KEY, JSON.stringify(buildLocalDraftData()));
+    } catch {
+      /* ignore quota / private mode */
+    }
+  }
+
+  function readLocalDraft() {
+    try {
+      const raw = localStorage.getItem(LOCAL_DRAFT_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function clearLocalDraft() {
+    try {
+      localStorage.removeItem(LOCAL_DRAFT_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function applyLoadedDraft(content, meta) {
+    if (content) essay.value = content;
+    if (meta) {
+      if (meta.snapshot40) snapshot40 = meta.snapshot40;
+      if (meta.at40Recorded != null) at40Recorded = meta.at40Recorded;
+      if (Array.isArray(meta.paragraphTimes)) paragraphTimes = meta.paragraphTimes;
+    }
+    sessionHighlights = loadStoredHighlights();
+    refreshPromptHighlights();
+    updateWordCount();
+  }
+
+  function flushDraftToServerSync(finish) {
+    if (!writingId && !started && !finish) return;
+    const json = JSON.stringify(buildDraftPayload(finish));
+    if (navigator.sendBeacon) {
+      const blob = new Blob([json], { type: "application/json" });
+      if (navigator.sendBeacon("/api/writings", blob)) return;
+    }
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "/api/writings", false);
+      xhr.setRequestHeader("Content-Type", "application/json");
+      xhr.send(json);
+    } catch {
+      /* best effort on tab close */
+    }
+  }
+
+  function flushDraftOnExit() {
+    if (exitFlushDone || !started || finishBtn.disabled) return;
+    exitFlushDone = true;
+    saveToLocalStorage();
+    flushDraftToServerSync(false);
   }
 
   async function api(path, opts) {
@@ -370,8 +468,7 @@
       <span class="task-badge">${escapeHtml(question.task_type)} · ${mins} min exam time</span>
       <h2 class="question-title">${escapeHtml(question.title)}</h2>
       <div id="prompt-text" class="prompt-text">${promptInner}</div>
-      ${imgHtml}
-      <p class="selection-hint">Select question text → Highlight (this attempt only)</p>`;
+      ${imgHtml}`;
     savedPromptRange = null;
     if (promptToolbar) promptToolbar.hidden = true;
     updateChartControl();
@@ -442,32 +539,28 @@
   async function loadDraft() {
     const res = await api(`/api/writings/active/${qid}`);
     const w = await res.json();
+    const local = readLocalDraft();
+    const dbTs = w && w.updated_at ? Date.parse(w.updated_at) : 0;
+    const localTs = local && local.timestamp ? local.timestamp : 0;
+
+    if (local && localTs > dbTs && (local.content || local.writingId)) {
+      writingId = local.writingId || (w && w.id) || null;
+      applyLoadedDraft(local.content, local);
+      saveStatus.textContent = "Draft restored from this device - click Start to continue";
+      return;
+    }
+
     if (w && w.id) {
       writingId = w.id;
-      if (w.content) essay.value = w.content;
-      sessionHighlights = loadStoredHighlights();
-      refreshPromptHighlights();
-      updateWordCount();
+      applyLoadedDraft(w.content, null);
       saveStatus.textContent = "Draft loaded - click Start to continue timing";
     }
   }
 
   async function saveDraft(finish) {
     if (!writingId && !started && !finish) return;
-    tickParagraphTime();
-    const elapsed = started && startTime ? Date.now() - startTime : null;
-    const body = {
-      id: writingId,
-      question_id: qid,
-      content: essay.value,
-      started_at: startTime ? new Date(startTime).toISOString() : undefined,
-      elapsed_ms: elapsed,
-      at_40min_ms: snapshot40.ms,
-      words_at_40min: snapshot40.ms != null ? snapshot40.words : null,
-      finish: !!finish,
-      final_words: finish ? countWords(essay.value) : null,
-      paragraph_stats: finish || started ? buildParagraphStats() : null,
-    };
+    saveToLocalStorage();
+    const body = buildDraftPayload(finish);
     const res = await api("/api/writings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -495,8 +588,10 @@
     startBtn.disabled = true;
     finishBtn.disabled = false;
     saveStatus.textContent = "Writing…";
+    saveToLocalStorage();
     tickInterval = setInterval(updateTimer, 250);
-    saveInterval = setInterval(() => saveDraft(false), 15000);
+    localDraftInterval = setInterval(saveToLocalStorage, LOCAL_DRAFT_INTERVAL_MS);
+    dbSyncInterval = setInterval(() => saveDraft(false), DB_SYNC_INTERVAL_MS);
     paraInterval = setInterval(tickParagraphTime, 2000);
     updateTimer();
     updateWordCount();
@@ -529,13 +624,15 @@
   async function finishSession() {
     if (!started) return;
     clearInterval(tickInterval);
-    clearInterval(saveInterval);
+    clearInterval(localDraftInterval);
+    clearInterval(dbSyncInterval);
     clearInterval(paraInterval);
     tickParagraphTime();
     const elapsed = Date.now() - startTime;
     essay.disabled = true;
     finishBtn.disabled = true;
     await saveDraft(true);
+    clearLocalDraft();
     clearPracticeHighlights();
     showResults(elapsed);
   }
@@ -608,13 +705,8 @@
     window.location.href = "/home";
   });
 
-  window.addEventListener("beforeunload", (e) => {
-    if (started && !finishBtn.disabled) {
-      saveDraft(false);
-      e.preventDefault();
-      e.returnValue = "";
-    }
-  });
+  window.addEventListener("pagehide", flushDraftOnExit);
+  window.addEventListener("beforeunload", flushDraftOnExit);
 
   loadQuestion();
   loadDraft();

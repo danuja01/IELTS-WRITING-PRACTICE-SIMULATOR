@@ -1,6 +1,6 @@
 # IELTS Writing Practice (lightweight)
 
-**Version 2.0.0** - see [CHANGELOG.md](CHANGELOG.md)
+**Version 3.0.0** - see [CHANGELOG.md](CHANGELOG.md)
 
 Minimal practice app for IELTS-style writing with admin panel, categories, paragraph analytics, and writing history.
 

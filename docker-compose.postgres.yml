@@ -1,0 +1,63 @@
+# IELTS Writing Practice — PostgreSQL stack (app + database)
+#
+# For high concurrency (50+ users). Starts BOTH containers with one deploy.
+#
+# Setup:
+#   cp .env.example .env
+#   # Set SECRET_KEY and POSTGRES_PASSWORD in .env
+#   docker compose -f docker-compose.postgres.yml up -d
+#
+# Dockge: create stack pointing at this file (not docker-compose.yml).
+#
+# GHCR image: ghcr.io/danuja01/ielts-writing-practice-postgres:latest
+# (same app binary as the SQLite package; use this compose file for Postgres mode)
+
+services:
+  ielts-writing:
+    container_name: ielts-writing
+    image: ghcr.io/danuja01/ielts-writing-practice-postgres:latest
+    # build: .   # uncomment for local build instead of GHCR pull
+    ports:
+      - "5050:5050"
+    env_file:
+      - .env
+    environment:
+      PORT: "5050"
+      IELTS_DB: /app/data/app.db
+      DB_TYPE: postgres
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
+      GUNICORN_THREADS: ${GUNICORN_THREADS:-4}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB:-ielts_writing}
+      POSTGRES_USER: ${POSTGRES_USER:-ielts}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: ielts-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ielts_writing}
+      POSTGRES_USER: ${POSTGRES_USER:-ielts}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-ielts} -d ${POSTGRES_DB:-ielts_writing}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  postgres-data:

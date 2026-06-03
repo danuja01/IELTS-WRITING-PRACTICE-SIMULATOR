@@ -1,5 +1,8 @@
-# Builds and pushes image to GitHub Container Registry on every push to main.
-# After first run: GitHub → Packages → ielts-writing-practice-simulator → Package settings → Public
+# Builds and pushes images to GitHub Container Registry on every push to main.
+# Packages (set both public under GitHub → Packages if NAS pulls without auth):
+#   ghcr.io/danuja01/ielts-writing-practice-simulator      — use with docker-compose.yml (SQLite)
+#   ghcr.io/danuja01/ielts-writing-practice-postgres       — use with docker-compose.postgres.yml
+# Same app image is published to both packages; pick the compose file for your database mode.
 
 name: Publish Docker image
 
@@ -38,3 +41,6 @@ jobs:
             ghcr.io/danuja01/ielts-writing-practice-simulator:latest
             ghcr.io/danuja01/ielts-writing-practice-simulator:${{ steps.version.outputs.version }}
             ghcr.io/danuja01/ielts-writing-practice-simulator:${{ github.sha }}
+            ghcr.io/danuja01/ielts-writing-practice-postgres:latest
+            ghcr.io/danuja01/ielts-writing-practice-postgres:${{ steps.version.outputs.version }}
+            ghcr.io/danuja01/ielts-writing-practice-postgres:${{ github.sha }}

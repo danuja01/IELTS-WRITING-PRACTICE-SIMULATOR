@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.0.0
+
+Scaling and deployment:
+
+- **Practice autosave**: localStorage every 30s, DB sync every 60s; flush on tab close/reload
+- **Optional PostgreSQL** via `DB_TYPE=postgres` and `db_adapter.py` (SQLite remains default)
+- **`docker-compose.postgres.yml`**: one-deploy stack (app + Postgres) for high concurrency
+- **Second GHCR package**: `ielts-writing-practice-postgres` for Postgres stacks
+- **Gunicorn tuning** via `GUNICORN_WORKERS` / `GUNICORN_THREADS` env (defaults unchanged: 1/1)
+- **`migrate_sqlite_to_postgres.py`**: optional SQLite → Postgres data migration
+
 ## 2.3.1
 
 - **Others**: open multiple users at once (no longer one-at-a-time inside Others)
