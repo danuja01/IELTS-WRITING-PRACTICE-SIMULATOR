@@ -417,7 +417,6 @@
       })
       .join("");
     root.innerHTML = `<div class="others-inner">
-      <p class="others-inner-hint">Shared questions · open a person below</p>
       <div class="others-user-stack">${panelsHtml}</div>
     </div>`;
     initOthersUserPanels(root);

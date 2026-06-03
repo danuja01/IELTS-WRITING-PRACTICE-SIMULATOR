@@ -641,6 +641,7 @@ body.practice-page {
   resize: none;
   padding: 1rem 1.25rem;
   font-family: var(--font-write);
+  font-size: 15px;
   line-height: 1.6;
   background: transparent;
   outline: none;
