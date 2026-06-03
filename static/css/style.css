@@ -853,6 +853,41 @@ body.practice-page {
   font-size: 0.8rem;
 }
 
+.others-accordion-head {
+  gap: 0.65rem;
+}
+
+.others-accordion-head .accordion-title {
+  flex: 0 0 auto;
+}
+
+.others-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.others-expand-all {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--accent);
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.others-expand-all:hover {
+  background: #f0f4f8;
+  border-color: var(--accent);
+}
+
 .accordion-count {
   font-size: 0.75rem;
   font-weight: 600;

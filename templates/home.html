@@ -62,10 +62,13 @@
           </summary>
           <div class="accordion-body" id="my-question-list"></div>
         </details>
-        <details class="accordion" name="questions">
-          <summary class="accordion-head">
+        <details class="accordion" name="questions" id="others-accordion">
+          <summary class="accordion-head others-accordion-head">
             <span class="accordion-title">Others</span>
-            <span class="accordion-count" id="others-question-count"></span>
+            <span class="others-head-actions">
+              <button type="button" class="others-expand-all" id="others-expand-all" hidden>Expand all</button>
+              <span class="accordion-count" id="others-question-count"></span>
+            </span>
           </summary>
           <div class="accordion-body others-accordion-body" id="others-question-list"></div>
         </details>

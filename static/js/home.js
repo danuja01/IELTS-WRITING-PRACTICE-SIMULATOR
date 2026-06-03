@@ -341,19 +341,47 @@
       .join("");
   }
 
-  function initOwnerAccordions(root) {
+  function syncOthersExpandAllButton() {
+    const btn = document.getElementById("others-expand-all");
+    if (!btn || !othersListRoot) return;
+    const panels = othersListRoot.querySelectorAll(".others-user-panel");
+    const hasPanels = panels.length > 0;
+    btn.hidden = !hasPanels;
+    if (!hasPanels) return;
+    const allOpen = [...panels].every((p) => p.open);
+    btn.textContent = allOpen ? "Collapse all" : "Expand all";
+    btn.setAttribute("aria-pressed", allOpen ? "true" : "false");
+  }
+
+  function setAllOthersUserPanels(open) {
+    if (!othersListRoot) return;
+    othersListRoot.querySelectorAll(".others-user-panel").forEach((panel) => {
+      if (open) panel.setAttribute("open", "");
+      else panel.removeAttribute("open");
+    });
+    syncOthersExpandAllButton();
+  }
+
+  function initOthersUserPanels(root) {
     const panels = root.querySelectorAll(".others-user-panel");
     panels.forEach((panel) => {
-      panel.addEventListener("toggle", () => {
-        if (!panel.open) return;
-        panels.forEach((other) => {
-          if (other !== panel) other.removeAttribute("open");
-        });
-      });
+      panel.addEventListener("toggle", syncOthersExpandAllButton);
     });
-    if (panels.length === 1) {
-      panels[0].setAttribute("open", "");
-    }
+    syncOthersExpandAllButton();
+  }
+
+  function bindOthersExpandAll() {
+    const btn = document.getElementById("others-expand-all");
+    if (!btn || btn.dataset.bound) return;
+    btn.dataset.bound = "1";
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const panels = othersListRoot?.querySelectorAll(".others-user-panel") || [];
+      if (!panels.length) return;
+      const allOpen = [...panels].every((p) => p.open);
+      setAllOthersUserPanels(!allOpen);
+    });
   }
 
   function renderGroupedByOwner(root, items, showOwner) {
@@ -392,7 +420,7 @@
       <p class="others-inner-hint">Shared questions · open a person below</p>
       <div class="others-user-stack">${panelsHtml}</div>
     </div>`;
-    initOwnerAccordions(root);
+    initOthersUserPanels(root);
   }
 
   function renderGroupedList(root, items, showOwner, byOwner) {
@@ -506,6 +534,7 @@
     renderGroupedList(othersListRoot, others, true, true);
     bindQuestionActions(myListRoot);
     bindQuestionActions(othersListRoot);
+    syncOthersExpandAllButton();
   }
 
   async function loadQuestions(retry = 0) {
@@ -609,6 +638,7 @@
 
   toggleTask1Image();
   initExclusiveAccordions();
+  bindOthersExpandAll();
   document.addEventListener("click", () => closeAllRowMenus());
   window.addEventListener("scroll", () => closeAllRowMenus(), true);
   window.addEventListener("resize", () => closeAllRowMenus());

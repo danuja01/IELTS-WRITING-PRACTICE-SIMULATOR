@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.3.1
+
+- **Others**: open multiple users at once (no longer one-at-a-time inside Others)
+- **Expand all / Collapse all** button in the Others accordion header
+
 ## 2.3.0
 
 Sharing and privacy:
