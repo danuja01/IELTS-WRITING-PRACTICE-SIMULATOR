@@ -867,6 +867,49 @@ mark.q-highlight {
   margin-bottom: 0.75rem;
 }
 
+.history-chart-box {
+  width: 100%;
+  max-width: 420px;
+  height: 220px;
+  margin: 0.75rem 0 1rem;
+  border: 1px solid var(--border);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.history-chart-box.admin-chart-box {
+  max-width: 100%;
+}
+
+.history-chart-img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.admin-forks {
+  margin: 0.5rem 0 0.75rem;
+}
+
+.admin-fork-list {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--accent);
+  background: #f5f7fa;
+  font-size: 0.8rem;
+}
+
+.admin-fork-list li {
+  padding: 0.2rem 0;
+}
+
 .admin-q-preview {
   margin: 0.5rem 0;
   font-size: 0.9rem;

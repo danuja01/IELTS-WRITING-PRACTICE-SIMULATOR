@@ -25,6 +25,14 @@
     return ((part / total) * 100).toFixed(1);
   }
 
+  function task1ChartHtml(w) {
+    if (!w.question_has_image || !w.question_image_url) return "";
+    return `
+      <div class="history-chart-box">
+        <img src="${esc(w.question_image_url)}" alt="Task 1 chart" class="history-chart-img">
+      </div>`;
+  }
+
   async function load() {
     const res = await fetch(`/api/writings/${wid}`);
     const w = await res.json();
@@ -72,9 +80,13 @@
       ? `<div class="stat-row"><span>Student</span><strong>${esc(w.username)}</strong></div>`
       : "";
 
+    const examMins = w.question_task_type === "task1" ? 20 : 40;
+
     root.innerHTML = `
       <section class="panel">
         <h2>${esc(w.question_title || "Writing")}</h2>
+        <p class="q-meta">${esc((w.question_task_type || "task2").toUpperCase())} · ${examMins} min exam</p>
+        ${task1ChartHtml(w)}
         <div class="stat-grid">
           ${userLine}
           <div class="stat-row"><span>Finished</span><strong>${esc(w.finished_at)}</strong></div>

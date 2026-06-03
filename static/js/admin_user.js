@@ -46,10 +46,20 @@
       .map((q) => {
         const attempts = q.attempts || [];
         const img = q.has_image && q.image_url
-          ? `<figure class="task1-figure"><img src="${esc(q.image_url)}" alt="Chart" class="task1-chart admin-q-thumb"></figure>`
+          ? `<div class="history-chart-box admin-chart-box"><img src="${esc(q.image_url)}" alt="Chart" class="history-chart-img"></div>`
           : "";
         const prompt = q.prompt || "";
         const preview = esc(prompt.slice(0, 220)) + (prompt.length > 220 ? "…" : "");
+        const forkCount = q.fork_count || 0;
+        const forksHtml =
+          forkCount > 0
+            ? `<div class="admin-forks" data-forks-qid="${q.id}">
+                <button type="button" class="link-btn admin-forks-toggle">${forkCount} fork${forkCount === 1 ? "" : "s"}</button>
+                <ul class="admin-fork-list" hidden></ul>
+              </div>`
+            : q.is_fork
+              ? '<p class="q-meta">Fork of a shared question</p>'
+              : "";
         const attemptsHtml = attempts.length
           ? `<ul class="admin-attempt-list">
               ${attempts
@@ -76,11 +86,39 @@
           </header>
           ${img}
           <p class="admin-q-preview">${preview}</p>
+          ${forksHtml}
           <h4 class="admin-q-sub">Attempts</h4>
           ${attemptsHtml}
         </article>`;
       })
       .join("");
+
+    cardsEl.querySelectorAll(".admin-forks-toggle").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const wrap = btn.closest(".admin-forks");
+        const list = wrap.querySelector(".admin-fork-list");
+        const qid = wrap.dataset.forksQid;
+        if (!list.hidden && list.innerHTML) {
+          list.hidden = true;
+          return;
+        }
+        const res = await fetch(`/api/admin/questions/${qid}/forks`);
+        const data = await res.json();
+        if (!res.ok) {
+          list.innerHTML = `<li class="q-meta">${esc(data.error)}</li>`;
+        } else if (!data.forks.length) {
+          list.innerHTML = '<li class="q-meta">No forks</li>';
+        } else {
+          list.innerHTML = data.forks
+            .map(
+              (f) =>
+                `<li>${esc(f.username)} · ${fmtDate(f.created_at)} · question #${f.id}</li>`
+            )
+            .join("");
+        }
+        list.hidden = false;
+      });
+    });
   }
 
   async function load() {

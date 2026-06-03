@@ -2,6 +2,7 @@
   const qid = window.HISTORY_QUESTION_ID;
   const viewUid = window.VIEW_USER_ID;
   const listEl = document.getElementById("attempt-list");
+  const headerEl = document.getElementById("question-header");
   const titleEl = document.getElementById("page-title");
 
   function esc(s) {
@@ -37,6 +38,17 @@
       return;
     }
     titleEl.textContent = data.question.title || "Attempts";
+    const q = data.question;
+    if (headerEl) {
+      const chartBlock =
+        q && q.has_image && q.image_url
+          ? `<div class="history-chart-box"><img src="${esc(q.image_url)}" alt="Task 1 chart" class="history-chart-img"></div>`
+          : "";
+      headerEl.innerHTML = `
+        <h2>${esc(q.title || "Question")}</h2>
+        <p class="q-meta">${esc((q.task_type || "task2").toUpperCase())}</p>
+        ${chartBlock}`;
+    }
     if (!data.attempts.length) {
       listEl.innerHTML = '<li class="q-meta">No finished attempts for this question.</li>';
       return;

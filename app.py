@@ -91,6 +91,7 @@ def _migrate(db):
     add_col("questions", "image_path", "TEXT")
     add_col("questions", "category_id", "INTEGER REFERENCES categories(id)")
     add_col("questions", "prompt_highlights", "TEXT")
+    add_col("questions", "copied_from_id", "INTEGER REFERENCES questions(id) ON DELETE SET NULL")
     add_col("writings", "paragraph_stats", "TEXT")
     db.commit()
 
@@ -231,14 +232,65 @@ def _apply_highlights(text, highlights):
     return text
 
 
+def _root_question_id(db, qid: int) -> int:
+    """Follow copy chain to the original (non-fork) question."""
+    seen = set()
+    current = qid
+    while current and current not in seen:
+        seen.add(current)
+        row = db.execute(
+            "SELECT copied_from_id FROM questions WHERE id = ?", (current,)
+        ).fetchone()
+        if not row or not row["copied_from_id"]:
+            return current
+        current = row["copied_from_id"]
+    return current
+
+
 def _question_json(row, for_user_id=None):
     d = dict(row)
     d["has_image"] = bool(d.get("image_path"))
     d["image_url"] = url_for("question_image", qid=d["id"]) if d["has_image"] else None
     d.pop("prompt_highlights", None)
+    cid = d.get("copied_from_id")
+    d["is_fork"] = bool(cid)
+    d["fork_count"] = int(d.get("fork_count") or 0)
     if for_user_id is not None:
         d["is_mine"] = d.get("user_id") == for_user_id
     return d
+
+
+def _question_detail_json(row):
+    if not row:
+        return None
+    d = {
+        "id": row["id"],
+        "title": row["title"],
+        "task_type": row["task_type"] or "task2",
+        "prompt": row["prompt"] if "prompt" in row.keys() else "",
+    }
+    d["has_image"] = bool(row["image_path"] if "image_path" in row.keys() else None)
+    d["image_url"] = url_for("question_image", qid=row["id"]) if d["has_image"] else None
+    return d
+
+
+def _writing_detail_json(row):
+    out = _writing_json(row)
+    if "task_type" in row.keys():
+        out["question_task_type"] = row["task_type"]
+    if "question_title" in row.keys():
+        out["question_title"] = row["question_title"]
+    if "username" in row.keys():
+        out["username"] = row["username"]
+    if "image_path" in row.keys() and row["question_id"]:
+        out["question_has_image"] = bool(row["image_path"])
+        out["question_image_url"] = (
+            url_for("question_image", qid=row["question_id"]) if row["image_path"] else None
+        )
+    else:
+        out["question_has_image"] = False
+        out["question_image_url"] = None
+    return out
 
 
 def _user_json(row):
@@ -344,6 +396,8 @@ def before_request():
 
     if "user_id" in session:
         if session.get("is_admin"):
+            if re.match(r"^/api/writings/\d+$", path) and request.method == "GET":
+                return None
             student_paths = ("/home", "/practice", "/history", "/api/questions", "/api/writings", "/api/categories")
             if any(path == p or path.startswith(p + "/") for p in student_paths):
                 if path.startswith("/api/"):
@@ -712,6 +766,14 @@ def copy_question(qid):
     if source["user_id"] == uid:
         return jsonify({"error": "already in My questions"}), 400
 
+    root_id = _root_question_id(db, qid)
+    existing = db.execute(
+        "SELECT id FROM questions WHERE user_id = ? AND copied_from_id = ?",
+        (uid, root_id),
+    ).fetchone()
+    if existing:
+        return jsonify({"error": "already copied to My questions", "id": existing["id"]}), 400
+
     category_id = None
     if source["category_name"]:
         mine_cat = db.execute(
@@ -723,14 +785,15 @@ def copy_question(qid):
 
     cur = db.execute(
         """INSERT INTO questions
-           (user_id, category_id, title, prompt, task_type, created_at)
-           VALUES (?, ?, ?, ?, ?, ?)""",
+           (user_id, category_id, title, prompt, task_type, copied_from_id, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
         (
             uid,
             category_id,
             source["title"],
             source["prompt"],
             source["task_type"],
+            root_id,
             now_iso(),
         ),
     )
@@ -765,7 +828,8 @@ def copy_question(qid):
 def list_questions():
     uid = session["user_id"]
     rows = get_db().execute(
-        """SELECT q.*, c.name AS category_name, u.username AS owner_username
+        """SELECT q.*, c.name AS category_name, u.username AS owner_username,
+                  (SELECT COUNT(*) FROM questions f WHERE f.copied_from_id = q.id) AS fork_count
            FROM questions q
            LEFT JOIN categories c ON c.id = q.category_id
            JOIN users u ON u.id = q.user_id
@@ -914,7 +978,8 @@ def list_writings():
 @app.route("/api/writings/by-question/<int:qid>", methods=["GET"])
 @student_required
 def writings_by_question(qid):
-    rows = get_db().execute(
+    db = get_db()
+    rows = db.execute(
         """SELECT w.*, q.title AS question_title, q.task_type
            FROM writings w
            JOIN questions q ON q.id = w.question_id
@@ -922,16 +987,11 @@ def writings_by_question(qid):
            ORDER BY w.finished_at DESC""",
         (session["user_id"], qid),
     ).fetchall()
-    if not rows:
-        q = get_db().execute(
-            "SELECT id, title, task_type FROM questions WHERE id = ?",
-            (qid,),
-        ).fetchone()
-        if not q:
-            return jsonify({"error": "not found"}), 404
-        return jsonify({"question": dict(q), "attempts": []})
+    q = db.execute("SELECT * FROM questions WHERE id = ?", (qid,)).fetchone()
+    if not q:
+        return jsonify({"error": "not found"}), 404
     return jsonify({
-        "question": {"id": qid, "title": rows[0]["question_title"], "task_type": rows[0]["task_type"]},
+        "question": _question_detail_json(q),
         "attempts": [_writing_json(r) for r in rows],
     })
 
@@ -941,7 +1001,7 @@ def writings_by_question(qid):
 def get_writing(wid):
     if session.get("is_admin"):
         row = get_db().execute(
-            """SELECT w.*, q.title AS question_title, q.task_type, u.username
+            """SELECT w.*, q.title AS question_title, q.task_type, q.image_path, u.username
                FROM writings w
                LEFT JOIN questions q ON q.id = w.question_id
                JOIN users u ON u.id = w.user_id
@@ -950,7 +1010,7 @@ def get_writing(wid):
         ).fetchone()
     else:
         row = get_db().execute(
-            """SELECT w.*, q.title AS question_title, q.task_type
+            """SELECT w.*, q.title AS question_title, q.task_type, q.image_path
                FROM writings w
                LEFT JOIN questions q ON q.id = w.question_id
                WHERE w.id = ? AND w.user_id = ?""",
@@ -958,7 +1018,7 @@ def get_writing(wid):
         ).fetchone()
     if not row:
         return jsonify({"error": "not found"}), 404
-    return jsonify(_writing_json(row))
+    return jsonify(_writing_detail_json(row))
 
 
 @app.route("/api/writings/active/<int:qid>", methods=["GET"])
@@ -1058,6 +1118,10 @@ def admin_get_user(uid):
     out_questions = []
     for q in questions:
         qd = _question_json(q)
+        qd["fork_count"] = db.execute(
+            "SELECT COUNT(*) AS n FROM questions WHERE copied_from_id = ?",
+            (q["id"],),
+        ).fetchone()["n"]
         attempts = db.execute(
             """SELECT id, finished_at, final_words, elapsed_ms
                FROM writings
@@ -1141,7 +1205,8 @@ def admin_get_question(qid):
 @app.route("/api/admin/users/<int:uid>/writings/by-question/<int:qid>", methods=["GET"])
 @admin_required
 def admin_writings_by_question(uid, qid):
-    rows = get_db().execute(
+    db = get_db()
+    rows = db.execute(
         """SELECT w.*, q.title AS question_title, q.task_type
            FROM writings w
            JOIN questions q ON q.id = w.question_id
@@ -1149,17 +1214,41 @@ def admin_writings_by_question(uid, qid):
            ORDER BY w.finished_at DESC""",
         (uid, qid),
     ).fetchall()
-    if not rows:
-        q = get_db().execute(
-            "SELECT id, title FROM questions WHERE id = ? AND user_id = ?",
-            (qid, uid),
-        ).fetchone()
-        if not q:
-            return jsonify({"error": "not found"}), 404
-        return jsonify({"question": dict(q), "attempts": []})
+    q = db.execute("SELECT * FROM questions WHERE id = ?", (qid,)).fetchone()
+    if not q:
+        return jsonify({"error": "not found"}), 404
     return jsonify({
-        "question": {"id": qid, "title": rows[0]["question_title"], "task_type": rows[0]["task_type"]},
+        "question": _question_detail_json(q),
         "attempts": [_writing_json(r) for r in rows],
+    })
+
+
+@app.route("/api/admin/questions/<int:qid>/forks", methods=["GET"])
+@admin_required
+def admin_question_forks(qid):
+    db = get_db()
+    root = db.execute("SELECT id FROM questions WHERE id = ?", (qid,)).fetchone()
+    if not root:
+        return jsonify({"error": "not found"}), 404
+    root_id = _root_question_id(db, qid)
+    rows = db.execute(
+        """SELECT q.id, q.created_at, q.user_id, u.username
+           FROM questions q
+           JOIN users u ON u.id = q.user_id
+           WHERE q.copied_from_id = ?
+           ORDER BY q.created_at DESC""",
+        (root_id,),
+    ).fetchall()
+    original = db.execute(
+        """SELECT q.id, q.title, u.username AS owner_username
+           FROM questions q
+           JOIN users u ON u.id = q.user_id
+           WHERE q.id = ?""",
+        (root_id,),
+    ).fetchone()
+    return jsonify({
+        "original": dict(original) if original else None,
+        "forks": [dict(r) for r in rows],
     })
 
 

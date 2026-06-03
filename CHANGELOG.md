@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.17
+
+- Question forks: All shows originals only (no duplicate copies); Copy to My tracks source; admin fork list
+- Admin can open student attempt details (full insights)
+- Task 1 chart in history uses fixed-size image box
+
 ## 2.0.16
 
 - All section shows only other users’ questions; copies appear in My questions only (no duplicates)

@@ -12,6 +12,7 @@
     <a href="{{ url_for('history_page') if not view_user_id else url_for('admin_user_page', user_id=view_user_id) }}" class="btn secondary">← Back</a>
   </header>
   <main class="home-main">
+    <section class="panel" id="question-header"></section>
     <section class="panel">
       <ul class="q-list" id="attempt-list"></ul>
     </section>

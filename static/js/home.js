@@ -118,12 +118,22 @@
     return opts + uncat;
   }
 
+  function userHasForkOf(sourceId) {
+    const root = Number(sourceId);
+    return questions.some((q) => q.is_mine && Number(q.copied_from_id) === root);
+  }
+
   function renderQuestionRows(items, showOwner) {
     return items
       .map((q) => {
         const ownerLine = showOwner && !q.is_mine ? ` · by ${esc(q.owner_username || "unknown")}` : "";
+        const forkLine = q.is_fork
+          ? " · Fork"
+          : showOwner && q.fork_count > 0
+            ? ` · ${q.fork_count} fork${q.fork_count === 1 ? "" : "s"}`
+            : "";
         const copyBtn =
-          showOwner && !q.is_mine
+          showOwner && !q.is_mine && !userHasForkOf(q.id)
             ? `<button type="button" class="secondary copy-to-my" data-copy="${q.id}">Copy to My</button>`
             : "";
         const manageActions = q.is_mine
@@ -141,7 +151,7 @@
                   <span class="task-pill">${esc((q.task_type || "task2").toUpperCase())}</span>
                   <strong>${esc(q.title)}</strong>
                 </div>
-                <div class="q-meta">${q.has_image ? "Chart · " : ""}${fmtDate(q.created_at)}${ownerLine}</div>
+                <div class="q-meta">${q.has_image ? "Chart · " : ""}${fmtDate(q.created_at)}${ownerLine}${forkLine}</div>
               </div>
               <div class="actions">
                 ${copyBtn}
@@ -233,11 +243,11 @@
 
   function renderQuestions() {
     const mine = questions.filter((q) => q.is_mine);
-    const allShared = questions.filter((q) => !q.is_mine);
+    const allCatalog = questions.filter((q) => !q.copied_from_id);
     if (myCountEl) myCountEl.textContent = mine.length ? `${mine.length}` : "0";
-    if (allCountEl) allCountEl.textContent = allShared.length ? `${allShared.length}` : "0";
+    if (allCountEl) allCountEl.textContent = allCatalog.length ? `${allCatalog.length}` : "0";
     renderGroupedList(myListRoot, mine, false);
-    renderGroupedList(allListRoot, allShared, true);
+    renderGroupedList(allListRoot, allCatalog, true);
     bindQuestionActions(myListRoot);
     bindQuestionActions(allListRoot);
   }
