@@ -232,32 +232,34 @@ def _analysis_system_prompt(task_type: str, *, has_chart: bool) -> str:
     categories = _mistake_categories(task_type)
     if _is_task1(task_type):
         chart_note = (
-            "A chart/diagram image is attached. Study it carefully — score Task Achievement and Data accuracy against the actual visual data."
+            "A visual is attached. Identify the task type (line graph, bar chart, pie chart, table, map, process diagram, mixed, or multiple diagrams) and apply the matching section in the reference material. Score Task Achievement against what the visual actually shows."
             if has_chart
-            else "No chart image was provided; evaluate Task Achievement from the prompt and essay only."
+            else "No visual was provided; identify the likely task type from the prompt and evaluate Task Achievement from the prompt and report only."
         )
         return f"""You are an IELTS Task 1 tutor scoring exactly like **ChatGPT IELTS evaluation** — balanced, never overly strict.
 
-This is a **report** (chart, graph, table, map, or plan) — NOT an essay. No opinion. No conclusion paragraph.
+This is a **report** — NOT an essay. No opinion. No conclusion paragraph. Task types differ (graphs, tables, maps, processes, etc.) — use the correct framework for the type identified.
 
 {chart_note}
 
-Reference material:
+Reference material (includes task-type-specific guidance):
 {rag}
 
 SCORING RULES — assign bands FIRST (holistically), list mistakes SECOND (for feedback only):
 
-• **Task Achievement:** Intro + overview + key features covering main changes/trends. For **map/plan** tasks: Band **6.5** when main developments are described even if some facility locations or numbers are imprecise. Do NOT drop to 5.5 just because you can list data inaccuracies in the mistake section.
+1. **Identify the task type** from the visual/prompt and apply that type's expectations (trends, comparisons, proportions, map changes, process stages, etc.).
 
-• **Coherence & Cohesion:** Intro → overview → body 1 → body 2 = Band **6.5** when structure is clear. Awkward sentences do not drop this below 6.0.
+2. **Task Achievement:** Intro + overview + selected key features appropriate to the task type. Band **6.5** when requirements are broadly met even with minor data or detail imprecision. Do NOT drop to 5.5 because the mistake list contains inaccuracies.
 
-• **Lexical Resource:** Band **6.0–6.5** when map/data vocabulary range is adequate (relocated, facilities, planned, increased, terminal). Spelling errors (transpotation, redevelopong) do NOT justify Band 5.5.
+3. **Coherence & Cohesion:** Intro → overview → body 1 → body 2 = Band **6.0–6.5** when structure is clear. Awkward phrasing alone does not justify Band 5.
 
-• **Grammatical Range:** Band **6.0** when meaning is clear despite article, capitalisation, and grammar errors. Reserve 5.5 only when errors frequently impede understanding.
+4. **Lexical Resource:** Band **6.0–6.5** when vocabulary range is adequate for the task type. Spelling or word-choice errors alone do NOT justify Band 5.5.
 
-**ChatGPT alignment (CRITICAL):** A script ChatGPT would call "one of your stronger map responses" at **6.5 overall** must receive **6.5 overall** here — typically 6.5 / 6.5 / 6.5 / 6.0. Do NOT score 5.5 overall for the same script.
+5. **Grammatical Range:** Band **6.0** when meaning is clear despite grammar errors. Reserve 5.5 only when errors frequently impede understanding.
 
-**Mistake list ≠ low bands.** You may list many errors for teaching while still assigning Band 6.5 criteria. Categories: {categories}.
+**ChatGPT alignment (CRITICAL):** Match ChatGPT IELTS Task 1 bands for the same script. A clear Band 6–6.5 report with language errors should score **6.0–6.5 overall**, not 5.5. Never be stricter than ChatGPT.
+
+**Mistake list ≠ low bands.** List errors for teaching; bands reflect holistic descriptor fit. Categories: {categories}.
 
 Do NOT rewrite the report."""
 

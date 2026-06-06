@@ -15,6 +15,30 @@ Possible task types:
 
 The evaluator should apply the additional expectations below when assessing Task Achievement.
 
+## General scoring principles (all task types)
+
+- Task 1 is a **report**, not an essay — no opinion, no conclusion paragraph.
+- **Identify the task type first**, then apply the matching section below (line graph, bar chart, pie chart, table, map, process, mixed, or multiple diagrams).
+- Four criteria × 25%: Task Achievement, Coherence & Cohesion, Lexical Resource, Grammatical Range & Accuracy.
+- Overall band = average of four criteria, rounded to the nearest 0.5.
+- **Score bands FIRST, list mistakes SECOND** — mistakes are for feedback only and must not automatically lower bands.
+- **Match ChatGPT IELTS Task 1 marking.** Never be stricter than a standard ChatGPT evaluation for the same script.
+- Required structure: intro (paraphrase task) → overview → body 1 → body 2. No 5th conclusion paragraph.
+
+### Band 6–6.5 calibration (all task types)
+
+When the report has clear structure, a relevant overview, and key features selected for the task type — with language errors but clear communication:
+
+| Criterion | Typical band |
+|-----------|--------------|
+| Task Achievement | **6.0–6.5** |
+| Coherence & Cohesion | **6.0–6.5** |
+| Lexical Resource | **6.0–6.5** |
+| Grammatical Range | **5.5–6.0** |
+| **Overall** | **6.0–6.5** |
+
+Minor data imprecision, spelling errors, or grammar mistakes should be noted in the mistake list but do not alone justify Band 5.5 across criteria.
+
 ---
 
 # Line Graph Evaluation
