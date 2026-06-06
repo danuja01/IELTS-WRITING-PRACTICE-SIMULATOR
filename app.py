@@ -5,6 +5,7 @@ import re
 import secrets
 import shutil
 import sqlite3
+import threading
 import time
 from datetime import datetime, timedelta, timezone
 from functools import wraps
@@ -16,6 +17,7 @@ load_dotenv()
 
 from flask import (
     Flask,
+    Response,
     abort,
     g,
     jsonify,
@@ -24,6 +26,7 @@ from flask import (
     request,
     send_from_directory,
     session,
+    stream_with_context,
     url_for,
 )
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -1536,37 +1539,7 @@ def get_writing_evaluation(wid):
     return jsonify(_evaluation_json(row))
 
 
-@app.route("/api/writings/<int:wid>/evaluate", methods=["POST"])
-@student_required
-def evaluate_writing_attempt(wid):
-    row = _get_writing_for_eval(wid, session["user_id"])
-    if not row:
-        return jsonify({"error": "not found or attempt not finished"}), 404
-
-    api_key = _get_user_openai_key(session["user_id"])
-    if not api_key:
-        return jsonify({
-            "error": "OpenAI API key not configured",
-            "settings_url": url_for("settings_page"),
-        }), 400
-
-    model = DEFAULT_MODEL
-    try:
-        result = evaluate_writing(
-            api_key=api_key,
-            task_type=row["task_type"] or "task2",
-            question_title=row["question_title"] or "",
-            question_prompt=row["question_prompt"] or "",
-            essay=row["content"] or "",
-            word_count=row["final_words"],
-            elapsed_ms=row["elapsed_ms"],
-            model=model,
-        )
-    except Exception as exc:
-        app.logger.exception("AI evaluation failed for writing %s", wid)
-        return jsonify({"error": f"Evaluation failed: {exc}"}), 502
-
-    payload = evaluation_to_dict(result, model=model)
+def _save_evaluation(wid: int, user_id: int, payload: dict, model: str):
     ts = now_iso()
     db = get_db()
     existing = db.execute(
@@ -1587,7 +1560,7 @@ def evaluate_writing_attempt(wid):
                 json.dumps(payload["mistakes"]),
                 json.dumps(payload["areas_for_improvement"]),
                 payload["rewritten_essay"],
-                payload["model"],
+                model,
                 ts,
                 wid,
             ),
@@ -1601,23 +1574,139 @@ def evaluate_writing_attempt(wid):
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 wid,
-                session["user_id"],
+                user_id,
                 payload["band_score"],
                 json.dumps(payload["criterion_scores"]),
                 payload["overall_feedback"],
                 json.dumps(payload["mistakes"]),
                 json.dumps(payload["areas_for_improvement"]),
                 payload["rewritten_essay"],
-                payload["model"],
+                model,
                 ts,
                 ts,
             ),
         )
     db.commit()
-    saved = db.execute(
+    return db.execute(
         "SELECT * FROM writing_evaluations WHERE writing_id = ?",
         (wid,),
     ).fetchone()
+
+
+def _sse_event(payload: dict) -> str:
+    return f"data: {json.dumps(payload)}\n\n"
+
+
+_EVAL_PROGRESS_STAGES = (
+    (8, "Preparing evaluation…"),
+    (18, "Reading essay against IELTS criteria…"),
+    (32, "Scoring band criteria…"),
+    (48, "Finding grammar and spelling errors…"),
+    (62, "Identifying vocabulary and phrasing issues…"),
+    (76, "Checking cohesion and sentence structure…"),
+    (88, "Generating Band 7.5+ rewrite…"),
+)
+
+
+def _evaluate_stream(wid: int, user_id: int, row, api_key: str):
+    holder: dict = {}
+    error_holder: dict = {}
+    model = DEFAULT_MODEL
+
+    def _run():
+        try:
+            with app.app_context():
+                result = evaluate_writing(
+                    api_key=api_key,
+                    task_type=row["task_type"] or "task2",
+                    question_title=row["question_title"] or "",
+                    question_prompt=row["question_prompt"] or "",
+                    essay=row["content"] or "",
+                    word_count=row["final_words"],
+                    elapsed_ms=row["elapsed_ms"],
+                    model=model,
+                )
+                payload = evaluation_to_dict(result, model=model)
+                saved = _save_evaluation(wid, user_id, payload, model)
+                holder["evaluation"] = _evaluation_json(saved)
+        except Exception as exc:
+            app.logger.exception("AI evaluation failed for writing %s", wid)
+            error_holder["error"] = str(exc)
+
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
+
+    stage_idx = 0
+    while thread.is_alive():
+        if stage_idx < len(_EVAL_PROGRESS_STAGES):
+            percent, message = _EVAL_PROGRESS_STAGES[stage_idx]
+            yield _sse_event({"type": "progress", "percent": percent, "message": message})
+            stage_idx += 1
+        else:
+            yield _sse_event({
+                "type": "progress",
+                "percent": 92,
+                "message": "Finalising evaluation…",
+            })
+        for _ in range(6):
+            if not thread.is_alive():
+                break
+            time.sleep(0.5)
+
+    thread.join()
+    if error_holder.get("error"):
+        yield _sse_event({"type": "error", "error": f"Evaluation failed: {error_holder['error']}"})
+        return
+    yield _sse_event({
+        "type": "complete",
+        "percent": 100,
+        "message": "Complete",
+        "result": holder.get("evaluation"),
+    })
+
+
+@app.route("/api/writings/<int:wid>/evaluate", methods=["POST"])
+@student_required
+def evaluate_writing_attempt(wid):
+    row = _get_writing_for_eval(wid, session["user_id"])
+    if not row:
+        return jsonify({"error": "not found or attempt not finished"}), 404
+
+    api_key = _get_user_openai_key(session["user_id"])
+    if not api_key:
+        return jsonify({
+            "error": "OpenAI API key not configured",
+            "settings_url": url_for("settings_page"),
+        }), 400
+
+    if request.args.get("stream") == "1":
+        return Response(
+            stream_with_context(_evaluate_stream(wid, session["user_id"], row, api_key)),
+            mimetype="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",
+            },
+        )
+
+    model = DEFAULT_MODEL
+    try:
+        result = evaluate_writing(
+            api_key=api_key,
+            task_type=row["task_type"] or "task2",
+            question_title=row["question_title"] or "",
+            question_prompt=row["question_prompt"] or "",
+            essay=row["content"] or "",
+            word_count=row["final_words"],
+            elapsed_ms=row["elapsed_ms"],
+            model=model,
+        )
+    except Exception as exc:
+        app.logger.exception("AI evaluation failed for writing %s", wid)
+        return jsonify({"error": f"Evaluation failed: {exc}"}), 502
+
+    payload = evaluation_to_dict(result, model=model)
+    saved = _save_evaluation(wid, session["user_id"], payload, model)
     return jsonify(_evaluation_json(saved))
 
 

@@ -12,6 +12,19 @@ APP_DIR = Path(__file__).resolve().parent
 RAG_DIR = APP_DIR / "ielts_rag"
 DEFAULT_MODEL = os.environ.get("OPENAI_EVAL_MODEL", "gpt-4o-mini")
 
+MISTAKE_CATEGORIES = (
+    "Grammar",
+    "Spelling",
+    "Vocabulary",
+    "Word choice",
+    "Sentence structure",
+    "Awkward phrasing",
+    "Cohesion",
+    "Punctuation",
+    "Task response",
+    "Other",
+)
+
 
 class CriterionScores(BaseModel):
     task: float = Field(
@@ -28,11 +41,18 @@ class CriterionScores(BaseModel):
 class MistakeItem(BaseModel):
     category: str = Field(
         ...,
-        description="Criterion area, e.g. Lexical Resource or Grammar",
+        description="One of: Grammar, Spelling, Vocabulary, Word choice, Sentence structure, Awkward phrasing, Cohesion, Punctuation, Task response, Other",
     )
-    excerpt: str = Field(..., description="Quoted phrase or sentence from the essay")
-    issue: str = Field(..., description="What is wrong and why it limits the band score")
-    suggestion: str = Field(..., description="How to fix or improve this point")
+    wrong_text: str = Field(
+        ...,
+        description="Exact incorrect phrase or sentence from the student's essay",
+    )
+    corrected_text: str = Field(
+        ...,
+        description="Corrected version of wrong_text",
+    )
+    issue: str = Field(..., description="Why this is wrong and how it affects the band score")
+    suggestion: str = Field(..., description="Clear advice to avoid this mistake in future")
 
 
 class WritingEvaluationResult(BaseModel):
@@ -49,8 +69,7 @@ class WritingEvaluationResult(BaseModel):
     )
     mistakes: list[MistakeItem] = Field(
         ...,
-        min_length=1,
-        description="Specific mistakes with excerpts from the essay",
+        description="Exhaustive list of every language and content error found in the essay",
     )
     areas_for_improvement: list[str] = Field(
         ...,
@@ -59,7 +78,10 @@ class WritingEvaluationResult(BaseModel):
     )
     rewritten_essay: str = Field(
         ...,
-        description="A Band 7.5+ rewrite preserving the original ideas",
+        description=(
+            "Band 7.5+ rewrite preserving the student's ideas. "
+            "Wrap every improved word or phrase in double angle brackets, e.g. <<improved phrase>>"
+        ),
     )
 
 
@@ -88,6 +110,7 @@ def _task_label(task_type: str) -> str:
 def _system_prompt(task_type: str) -> str:
     rag = retrieve_rag_context(task_type)
     task_criterion = "Task Achievement" if (task_type or "").lower() == "task1" else "Task Response"
+    categories = ", ".join(MISTAKE_CATEGORIES)
     return f"""You are a certified IELTS Writing examiner with years of experience scoring Academic module scripts.
 
 Evaluate the student's essay strictly using official IELTS band descriptors and the reference material below.
@@ -97,12 +120,23 @@ Calculate the overall band as the average of the four criteria, rounded to the n
 Reference material (RAG context):
 {rag}
 
-Rules:
+Mistake identification rules (CRITICAL):
+- List EVERY error in the essay — do not skip or summarise. Be exhaustive.
+- Include all grammar errors, spelling mistakes, wrong word forms, awkward or unnatural sentences, weak vocabulary, cohesion problems, punctuation issues, and task-response gaps.
+- Each mistake must have wrong_text (exact excerpt from the essay) and corrected_text (the fix).
+- Use category from: {categories}
+- Short essays may have 10+ mistakes; longer essays often have 20–40+. Include them all.
+
+Rewrite rules:
+- Keep the student's original ideas and argument.
+- Upgrade to Band 7.5+ standard.
+- Wrap EVERY improved word or phrase in double angle brackets: <<like this>>
+- Mark vocabulary upgrades, grammar fixes, and stronger collocations with <<>>.
+
+Scoring rules:
 - Be fair but rigorous — mirror how real examiners score.
-- Quote short excerpts from the student's essay when identifying mistakes.
-- The rewritten essay must keep the student's ideas but demonstrate Band 7.5+ language, structure, and development.
-- For Task 1, ensure the rewrite includes a clear overview and accurate data language.
-- For Task 2, ensure the rewrite fully addresses the prompt with developed body paragraphs."""
+- For Task 1, the rewrite must include a clear overview and accurate data language.
+- For Task 2, the rewrite must fully address the prompt with developed body paragraphs."""
 
 
 def _user_prompt(
@@ -132,7 +166,8 @@ Attempt metadata:
 
 Student essay:
 {essay}
-"""
+
+Return a complete evaluation with every mistake identified individually."""
 
 
 def evaluate_writing(
@@ -174,7 +209,6 @@ def evaluate_writing(
             },
         ],
         response_model=WritingEvaluationResult,
-        max_tokens=4096,
     )
 
 

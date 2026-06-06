@@ -37,6 +37,6 @@
     window.ADMIN_VIEW = {{ 'true' if admin_view else 'false' }};
     window.ADMIN_USER_ID = {% if admin_view and user_id %}{{ user_id }}{% else %}null{% endif %};
   </script>
-  <script src="{{ url_for('static', filename='js/history_writing.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/history_writing.js') }}?v={{ app_version }}"></script>
 </body>
 </html>
