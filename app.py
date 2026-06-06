@@ -41,7 +41,22 @@ DATA_DIR = os.path.dirname(DB_PATH)
 UPLOAD_DIR = os.path.join(DATA_DIR, "uploads")
 ALLOWED_IMAGE_EXT = frozenset({".png", ".jpg", ".jpeg", ".webp", ".gif"})
 MAX_IMAGE_BYTES = 8 * 1024 * 1024
-EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+def _is_valid_email(email: str) -> bool:
+    if not email or len(email) > 254 or " " in email or "@" not in email:
+        return False
+    local, domain = email.rsplit("@", 1)
+    if not local or not domain or "." not in domain:
+        return False
+    if domain.startswith(".") or domain.endswith(".") or ".." in domain:
+        return False
+    return True
+
+SUB_ADMIN_PERMISSIONS = {
+    "reset_password": "Reset student passwords",
+    "edit_users": "Edit user details (username, email)",
+    "edit_questions": "Edit questions",
+}
+DEFAULT_SUB_ADMIN_PERMISSIONS = {k: False for k in SUB_ADMIN_PERMISSIONS}
 
 SETUP_WHITELIST = {"/setup-admin", "/api/setup-admin", "/api/version"}
 CHANGE_PW_WHITELIST = {"/change-password", "/api/change-password", "/api/logout"}
@@ -104,17 +119,51 @@ def init_db():
     init_database(DB_PATH)
 
 
+def _upload_root() -> str:
+    root = os.path.realpath(UPLOAD_DIR)
+    os.makedirs(root, exist_ok=True)
+    return root
+
+
+def _image_ext_from_filename(filename: str) -> str:
+    ext = Path(secure_filename(filename or "")).suffix.lower()
+    if ext not in ALLOWED_IMAGE_EXT:
+        raise ValueError("image must be PNG, JPG, WEBP, or GIF")
+    return ext
+
+
+def _question_image_rel(user_id: int, question_id: int, ext: str) -> str:
+    uid = int(user_id)
+    qid = int(question_id)
+    if uid < 1 or qid < 1:
+        raise ValueError("invalid id")
+    if ext not in ALLOWED_IMAGE_EXT:
+        raise ValueError("image must be PNG, JPG, WEBP, or GIF")
+    return f"{uid}/{qid}{ext}"
+
+
+def _resolve_upload_path(rel: str) -> str:
+    if not rel or os.path.isabs(rel):
+        raise ValueError("invalid path")
+    norm = os.path.normpath(rel)
+    if norm.startswith("..") or norm == ".":
+        raise ValueError("invalid path")
+    root = _upload_root()
+    dest = os.path.abspath(os.path.join(root, norm))
+    if dest != root and not dest.startswith(root + os.sep):
+        raise ValueError("invalid path")
+    return dest
+
+
 def _save_question_image(file_storage, user_id: int, question_id: int) -> str:
     if not file_storage or not file_storage.filename:
         return ""
-    ext = Path(secure_filename(file_storage.filename)).suffix.lower()
-    if ext not in ALLOWED_IMAGE_EXT:
-        raise ValueError("image must be PNG, JPG, WEBP, or GIF")
+    ext = _image_ext_from_filename(file_storage.filename)
     raw = file_storage.read()
     if len(raw) > MAX_IMAGE_BYTES:
         raise ValueError("image too large (max 8 MB)")
-    rel = f"{user_id}/{question_id}{ext}"
-    dest = os.path.join(UPLOAD_DIR, rel)
+    rel = _question_image_rel(user_id, question_id, ext)
+    dest = _resolve_upload_path(rel)
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     with open(dest, "wb") as f:
         f.write(raw)
@@ -124,14 +173,14 @@ def _save_question_image(file_storage, user_id: int, question_id: int) -> str:
 def _copy_question_image(source_rel, user_id: int, question_id: int) -> str:
     if not source_rel:
         return ""
-    src = os.path.join(UPLOAD_DIR, source_rel)
+    src = _resolve_upload_path(source_rel)
     if not os.path.isfile(src):
         return ""
     ext = Path(source_rel).suffix.lower()
     if ext not in ALLOWED_IMAGE_EXT:
         return ""
-    rel = f"{user_id}/{question_id}{ext}"
-    dest = os.path.join(UPLOAD_DIR, rel)
+    rel = _question_image_rel(user_id, question_id, ext)
+    dest = _resolve_upload_path(rel)
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     shutil.copy2(src, dest)
     return rel
@@ -140,7 +189,10 @@ def _copy_question_image(source_rel, user_id: int, question_id: int) -> str:
 def _delete_question_image(image_path):
     if not image_path:
         return
-    full = os.path.join(UPLOAD_DIR, image_path)
+    try:
+        full = _resolve_upload_path(image_path)
+    except ValueError:
+        return
     if os.path.isfile(full):
         os.remove(full)
 
@@ -249,11 +301,47 @@ def _writing_detail_json(row):
     return out
 
 
+def _as_dict(row):
+    return row if isinstance(row, dict) else dict(row)
+
+
+def _parse_sub_admin_permissions(raw):
+    if not raw:
+        return dict(DEFAULT_SUB_ADMIN_PERMISSIONS)
+    try:
+        data = json.loads(raw) if isinstance(raw, str) else raw
+        if not isinstance(data, dict):
+            return dict(DEFAULT_SUB_ADMIN_PERMISSIONS)
+        return {k: bool(data.get(k, False)) for k in SUB_ADMIN_PERMISSIONS}
+    except (json.JSONDecodeError, TypeError):
+        return dict(DEFAULT_SUB_ADMIN_PERMISSIONS)
+
+
+def _permissions_json(perms):
+    return json.dumps({k: bool(perms.get(k, False)) for k in SUB_ADMIN_PERMISSIONS})
+
+
+def _is_panel_user():
+    return session.get("is_admin") or session.get("is_sub_admin")
+
+
+def _has_admin_permission(perm):
+    if session.get("is_admin"):
+        return True
+    if session.get("is_sub_admin"):
+        return bool(session.get("admin_permissions", {}).get(perm))
+    return False
+
+
 def _user_json(row):
     d = dict(row)
     d.pop("password_hash", None)
     d["is_admin"] = bool(d.get("is_admin"))
+    d["is_sub_admin"] = bool(d.get("is_sub_admin"))
     d["must_change_password"] = bool(d.get("must_change_password"))
+    raw_perms = d.pop("sub_admin_permissions", None)
+    if d["is_sub_admin"]:
+        d["permissions"] = _parse_sub_admin_permissions(raw_perms)
     return d
 
 
@@ -308,16 +396,26 @@ def _get_writing_for_eval(wid: int, user_id: int):
 
 
 def _set_session(user_row):
-    session["user_id"] = user_row["id"]
-    session["username"] = user_row["username"]
-    session["is_admin"] = bool(user_row["is_admin"])
+    user = _as_dict(user_row)
+    session["user_id"] = user["id"]
+    session["username"] = user["username"]
+    session["is_admin"] = bool(user["is_admin"])
+    session["is_sub_admin"] = bool(user.get("is_sub_admin"))
+    if session["is_admin"]:
+        session["admin_permissions"] = {k: True for k in SUB_ADMIN_PERMISSIONS}
+    elif session["is_sub_admin"]:
+        session["admin_permissions"] = _parse_sub_admin_permissions(
+            user.get("sub_admin_permissions")
+        )
+    else:
+        session.pop("admin_permissions", None)
     session["must_change_password"] = bool(user_row["must_change_password"])
 
 
 def _login_redirect_url():
     if session.get("must_change_password"):
         return url_for("change_password")
-    if session.get("is_admin"):
+    if _is_panel_user():
         return url_for("admin_home")
     return url_for("home")
 
@@ -341,7 +439,7 @@ def student_required(f):
             if request.path.startswith("/api/"):
                 return jsonify({"error": "login required"}), 401
             return redirect(url_for("login"))
-        if session.get("is_admin"):
+        if _is_panel_user():
             if request.path.startswith("/api/"):
                 return jsonify({"error": "admin cannot use student features"}), 403
             return redirect(url_for("admin_home"))
@@ -350,7 +448,23 @@ def student_required(f):
     return wrapped
 
 
-def admin_required(f):
+def panel_required(f):
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        if "user_id" not in session:
+            if request.path.startswith("/api/"):
+                return jsonify({"error": "login required"}), 401
+            return redirect(url_for("login"))
+        if not _is_panel_user():
+            if request.path.startswith("/api/"):
+                return jsonify({"error": "admin required"}), 403
+            return redirect(url_for("home"))
+        return f(*args, **kwargs)
+
+    return wrapped
+
+
+def full_admin_required(f):
     @wraps(f)
     def wrapped(*args, **kwargs):
         if "user_id" not in session:
@@ -359,11 +473,33 @@ def admin_required(f):
             return redirect(url_for("login"))
         if not session.get("is_admin"):
             if request.path.startswith("/api/"):
-                return jsonify({"error": "admin required"}), 403
+                return jsonify({"error": "full admin required"}), 403
             return redirect(url_for("home"))
         return f(*args, **kwargs)
 
     return wrapped
+
+
+def admin_permission_required(perm):
+    def decorator(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            if "user_id" not in session:
+                if request.path.startswith("/api/"):
+                    return jsonify({"error": "login required"}), 401
+                return redirect(url_for("login"))
+            if not _has_admin_permission(perm):
+                if request.path.startswith("/api/"):
+                    return jsonify({"error": "permission denied"}), 403
+                return redirect(url_for("admin_home"))
+            return f(*args, **kwargs)
+
+        return wrapped
+
+    return decorator
+
+
+admin_required = panel_required
 
 
 @app.before_request
@@ -388,7 +524,7 @@ def before_request():
             return redirect(url_for("change_password"))
 
     if "user_id" in session:
-        if session.get("is_admin"):
+        if _is_panel_user():
             if re.match(r"^/api/writings/\d+$", path) and request.method == "GET":
                 return None
             if re.match(r"^/api/questions/\d+/image$", path) and request.method == "GET":
@@ -477,7 +613,7 @@ def api_setup_admin():
     password = data.get("password") or ""
     if len(username) < 2 or len(password) < 4:
         return jsonify({"error": "username (2+) and password (4+) required"}), 400
-    if not email or not EMAIL_RE.match(email):
+    if not email or not _is_valid_email(email):
         return jsonify({"error": "valid email required"}), 400
     db = get_db()
     try:
@@ -506,7 +642,7 @@ def login_page():
 @app.route("/change-password", methods=["GET"])
 @login_required
 def change_password():
-    if not session.get("must_change_password") and not session.get("is_admin"):
+    if not session.get("must_change_password") and not _is_panel_user():
         return redirect(url_for("home"))
     return render_template("change_password.html")
 
@@ -521,7 +657,7 @@ def register():
     password = data.get("password") or ""
     if len(username) < 2 or len(password) < 4:
         return jsonify({"error": "username (2+) and password (4+) required"}), 400
-    if not email or not EMAIL_RE.match(email):
+    if not email or not _is_valid_email(email):
         return jsonify({"error": "valid email required"}), 400
     db = get_db()
     try:
@@ -558,6 +694,7 @@ def api_login():
         "ok": True,
         "redirect": _login_redirect_url(),
         "is_admin": bool(row["is_admin"]),
+        "is_sub_admin": bool(_as_dict(row).get("is_sub_admin")),
         "must_change_password": bool(row["must_change_password"]),
     })
 
@@ -627,7 +764,7 @@ def api_forgot_password():
 
     data = request.get_json(silent=True) or {}
     email = _normalize_email(data.get("email") or "")
-    if not email or not EMAIL_RE.match(email):
+    if not email or not _is_valid_email(email):
         return jsonify({"error": "valid email required"}), 400
 
     db = get_db()
@@ -679,7 +816,7 @@ def api_reset_password():
     password = data.get("password") or ""
     confirm = data.get("confirm") or ""
 
-    if not email or not EMAIL_RE.match(email):
+    if not email or not _is_valid_email(email):
         return jsonify({"error": "valid email required"}), 400
     if not re.fullmatch(r"\d{6}", code):
         return jsonify({"error": "enter the 6-digit code from your email"}), 400
@@ -805,13 +942,20 @@ def admin_home():
 
 
 @app.route("/admin/users/<int:user_id>")
-@admin_required
+@panel_required
 def admin_user_page(user_id):
     return render_template("admin_user.html", user_id=user_id)
 
 
+@app.route("/admin/sub-admins/<int:user_id>")
+@full_admin_required
+def admin_sub_admin_page(user_id):
+    return render_template("admin_sub_admin.html", user_id=user_id)
+
+
 @app.route("/admin/questions/<int:qid>/edit")
-@admin_required
+@panel_required
+@admin_permission_required("edit_questions")
 def admin_edit_question_page(qid):
     return render_template("admin_edit_question.html", question_id=qid)
 
@@ -1117,7 +1261,7 @@ def get_question(qid):
 @app.route("/api/questions/<int:qid>/image")
 @login_required
 def question_image(qid):
-    if session.get("is_admin"):
+    if _is_panel_user():
         row = get_db().execute(
             "SELECT image_path FROM questions WHERE id = ?", (qid,)
         ).fetchone()
@@ -1130,9 +1274,11 @@ def question_image(qid):
             abort(404)
     if not row or not row["image_path"]:
         abort(404)
-    parent = os.path.join(UPLOAD_DIR, os.path.dirname(row["image_path"]))
-    name = os.path.basename(row["image_path"])
-    return send_from_directory(parent, name)
+    try:
+        full = _resolve_upload_path(row["image_path"])
+    except ValueError:
+        abort(404)
+    return send_from_directory(os.path.dirname(full), os.path.basename(full))
 
 
 @app.route("/api/questions/<int:qid>", methods=["DELETE"])
@@ -1209,7 +1355,7 @@ def writings_by_question(qid):
 @app.route("/api/writings/<int:wid>", methods=["GET"])
 @login_required
 def get_writing(wid):
-    if session.get("is_admin"):
+    if _is_panel_user():
         row = get_db().execute(
             """SELECT w.*, q.title AS question_title, q.task_type, q.image_path, u.username
                FROM writings w
@@ -1478,21 +1624,125 @@ def evaluate_writing_attempt(wid):
 # --- Admin API ---
 
 
+def _admin_capabilities():
+    return {k: _has_admin_permission(k) for k in SUB_ADMIN_PERMISSIONS}
+
+
+def _can_manage_target_user(row, uid=None):
+    target = _as_dict(row)
+    if session.get("is_admin"):
+        return True
+    if target["is_admin"] or target.get("is_sub_admin"):
+        return False
+    return True
+
+
+@app.route("/api/admin/me", methods=["GET"])
+@panel_required
+def admin_me():
+    return jsonify({
+        "username": session.get("username"),
+        "is_admin": bool(session.get("is_admin")),
+        "is_sub_admin": bool(session.get("is_sub_admin")),
+        "permissions": session.get("admin_permissions", {}),
+        "permission_labels": SUB_ADMIN_PERMISSIONS,
+    })
+
+
 @app.route("/api/admin/users", methods=["GET"])
-@admin_required
+@panel_required
 def admin_list_users():
-    rows = get_db().execute(
-        """SELECT id, username, email, is_admin, must_change_password, created_at
-           FROM users ORDER BY is_admin DESC, username"""
-    ).fetchall()
+    db = get_db()
+    if session.get("is_admin"):
+        rows = db.execute(
+            """SELECT id, username, email, is_admin, is_sub_admin, sub_admin_permissions,
+                      must_change_password, created_at
+               FROM users ORDER BY is_admin DESC, is_sub_admin DESC, username"""
+        ).fetchall()
+    else:
+        rows = db.execute(
+            """SELECT id, username, email, is_admin, is_sub_admin, sub_admin_permissions,
+                      must_change_password, created_at
+               FROM users WHERE is_admin = 0 AND is_sub_admin = 0
+               ORDER BY username"""
+        ).fetchall()
     return jsonify([_user_json(r) for r in rows])
 
 
+@app.route("/api/admin/sub-admins", methods=["POST"])
+@full_admin_required
+def admin_create_sub_admin():
+    data = request.get_json(silent=True) or {}
+    username = (data.get("username") or "").strip()
+    email = (data.get("email") or "").strip()
+    password = data.get("password") or ""
+    perms = data.get("permissions") or {}
+    if len(username) < 2 or len(password) < 4:
+        return jsonify({"error": "username (2+) and password (4+) required"}), 400
+    if not email or not _is_valid_email(email):
+        return jsonify({"error": "valid email required"}), 400
+    merged = {k: bool(perms.get(k, False)) for k in SUB_ADMIN_PERMISSIONS}
+    db = get_db()
+    try:
+        db.execute(
+            """INSERT INTO users (username, email, password_hash, is_admin, is_sub_admin,
+               sub_admin_permissions, must_change_password, created_at)
+               VALUES (?, ?, ?, 0, 1, ?, 0, ?)""",
+            (username, email, generate_password_hash(password), _permissions_json(merged), now_iso()),
+        )
+        db.commit()
+    except sqlite3.IntegrityError:
+        return jsonify({"error": "username already taken"}), 409
+    row = db.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+    return jsonify(_user_json(row)), 201
+
+
+@app.route("/api/admin/users/<int:uid>/sub-admin-permissions", methods=["PUT"])
+@full_admin_required
+def admin_update_sub_admin_permissions(uid):
+    data = request.get_json(silent=True) or {}
+    perms = data.get("permissions") or {}
+    db = get_db()
+    row = db.execute("SELECT * FROM users WHERE id = ?", (uid,)).fetchone()
+    if not row:
+        return jsonify({"error": "not found"}), 404
+    if not _as_dict(row).get("is_sub_admin"):
+        return jsonify({"error": "user is not a sub-admin"}), 400
+    merged = {k: bool(perms.get(k, False)) for k in SUB_ADMIN_PERMISSIONS}
+    db.execute(
+        "UPDATE users SET sub_admin_permissions = ? WHERE id = ?",
+        (_permissions_json(merged), uid),
+    )
+    db.commit()
+    out = db.execute("SELECT * FROM users WHERE id = ?", (uid,)).fetchone()
+    return jsonify(_user_json(out))
+
+
+@app.route("/api/admin/users/<int:uid>/sub-admin", methods=["DELETE"])
+@full_admin_required
+def admin_remove_sub_admin(uid):
+    db = get_db()
+    row = db.execute("SELECT * FROM users WHERE id = ?", (uid,)).fetchone()
+    if not row:
+        return jsonify({"error": "not found"}), 404
+    if not _as_dict(row).get("is_sub_admin"):
+        return jsonify({"error": "user is not a sub-admin"}), 400
+    db.execute(
+        """UPDATE users SET is_sub_admin = 0, sub_admin_permissions = NULL
+           WHERE id = ?""",
+        (uid,),
+    )
+    db.commit()
+    return jsonify({"ok": True})
+
+
 @app.route("/api/admin/users/<int:uid>", methods=["GET"])
-@admin_required
+@panel_required
 def admin_get_user(uid):
     row = get_db().execute("SELECT * FROM users WHERE id = ?", (uid,)).fetchone()
     if not row:
+        return jsonify({"error": "not found"}), 404
+    if not _can_manage_target_user(row):
         return jsonify({"error": "not found"}), 404
     db = get_db()
     questions = db.execute(
@@ -1518,11 +1768,13 @@ def admin_get_user(uid):
     return jsonify({
         "user": _user_json(row),
         "questions": out_questions,
+        "capabilities": _admin_capabilities(),
     })
 
 
 @app.route("/api/admin/users/<int:uid>", methods=["PUT"])
-@admin_required
+@panel_required
+@admin_permission_required("edit_users")
 def admin_update_user(uid):
     data = request.get_json(silent=True) or {}
     username = (data.get("username") or "").strip()
@@ -1531,9 +1783,11 @@ def admin_update_user(uid):
     row = db.execute("SELECT * FROM users WHERE id = ?", (uid,)).fetchone()
     if not row:
         return jsonify({"error": "not found"}), 404
+    if not _can_manage_target_user(row):
+        return jsonify({"error": "cannot edit this account"}), 400
     if row["is_admin"] and uid != session["user_id"]:
         return jsonify({"error": "cannot edit other admins"}), 400
-    if email and not EMAIL_RE.match(email):
+    if email and not _is_valid_email(email):
         return jsonify({"error": "invalid email"}), 400
     if username:
         try:
@@ -1549,18 +1803,23 @@ def admin_update_user(uid):
 
 
 @app.route("/api/admin/users/<int:uid>/reset-password", methods=["POST"])
-@admin_required
+@panel_required
+@admin_permission_required("reset_password")
 def admin_reset_password(uid):
     data = request.get_json(silent=True) or {}
     temp = (data.get("password") or "").strip() or secrets.token_urlsafe(8)
     if len(temp) < 4:
         return jsonify({"error": "temp password too short"}), 400
     db = get_db()
-    row = db.execute("SELECT is_admin FROM users WHERE id = ?", (uid,)).fetchone()
+    row = db.execute(
+        "SELECT is_admin, is_sub_admin FROM users WHERE id = ?", (uid,)
+    ).fetchone()
     if not row:
         return jsonify({"error": "not found"}), 404
     if row["is_admin"]:
         return jsonify({"error": "cannot reset admin password here"}), 400
+    if _as_dict(row).get("is_sub_admin") and not session.get("is_admin"):
+        return jsonify({"error": "cannot reset sub-admin password"}), 400
     db.execute(
         "UPDATE users SET password_hash = ?, must_change_password = 1 WHERE id = ?",
         (generate_password_hash(temp), uid),
@@ -1636,7 +1895,8 @@ def admin_question_forks(qid):
 
 
 @app.route("/api/admin/questions/<int:qid>", methods=["PUT"])
-@admin_required
+@panel_required
+@admin_permission_required("edit_questions")
 def admin_update_question(qid):
     db = get_db()
     row = db.execute("SELECT * FROM questions WHERE id = ?", (qid,)).fetchone()

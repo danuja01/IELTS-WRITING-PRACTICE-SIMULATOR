@@ -40,8 +40,9 @@
     return `${m}m ${s}s`;
   }
 
-  function renderQuestionCards(questions) {
+  function renderQuestionCards(questions, capabilities) {
     const list = questions || [];
+    const canEditQuestions = capabilities && capabilities.edit_questions;
     if (!list.length) {
       cardsEl.innerHTML = '<p class="q-meta">No questions yet.</p>';
       return;
@@ -81,6 +82,10 @@
             </ul>`
           : '<p class="admin-attempts-empty">No finished attempts yet.</p>';
 
+        const editBtn = canEditQuestions
+          ? `<a class="btn" href="/admin/questions/${q.id}/edit">Edit</a>`
+          : "";
+
         return `
         <article class="admin-q-card">
           <header class="admin-q-head">
@@ -89,7 +94,7 @@
               <strong>${esc(q.title || "Untitled")}</strong>
               <span class="q-meta"> · ${q.attempt_count != null ? q.attempt_count : attempts.length} attempt(s)</span>
             </div>
-            <a class="btn" href="/admin/questions/${q.id}/edit">Edit</a>
+            ${editBtn}
           </header>
           ${img}
           <p class="admin-q-preview">${preview}</p>
@@ -132,6 +137,75 @@
     });
   }
 
+  function renderUserPanel(u, capabilities) {
+    const canEditUsers = capabilities && capabilities.edit_users;
+    const canResetPassword = capabilities && capabilities.reset_password;
+
+    if (!canEditUsers && !canResetPassword) {
+      panel.innerHTML = `
+      <h2>${esc(u.username)}</h2>
+      <p class="q-meta">${esc(u.email || "no email")}</p>
+      <p class="q-meta">View-only access</p>`;
+      return;
+    }
+
+    const editForm = canEditUsers
+      ? `<form id="user-edit" class="inline-form">
+        <label>Email <input type="email" id="u-email" value="${esc(u.email || "")}"></label>
+        <label>Username <input type="text" id="u-name" value="${esc(u.username)}"></label>
+        <button type="submit">Save user</button>
+      </form>`
+      : "";
+
+    const resetBlock = canResetPassword
+      ? `<div class="actions" style="margin-top:0.75rem">
+        <button type="button" id="reset-pw" class="secondary">Set temp password</button>
+        <span id="temp-pw" class="q-meta"></span>
+      </div>`
+      : "";
+
+    panel.innerHTML = `
+      <h2>${esc(u.username)}</h2>
+      ${canEditUsers ? "" : `<p class="q-meta">${esc(u.email || "no email")}</p>`}
+      ${editForm}
+      ${resetBlock}
+      <p class="msg" id="user-msg"></p>`;
+
+    if (canEditUsers) {
+      document.getElementById("user-edit").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const r = await fetch(`/api/admin/users/${uid}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: document.getElementById("u-email").value.trim(),
+            username: document.getElementById("u-name").value.trim(),
+          }),
+        });
+        const d = await r.json();
+        document.getElementById("user-msg").textContent = r.ok ? "Saved." : d.error || "Failed";
+      });
+    }
+
+    if (canResetPassword) {
+      document.getElementById("reset-pw").addEventListener("click", async () => {
+        const custom = prompt("Temp password (leave empty for random):", "");
+        const body = custom ? { password: custom } : {};
+        const r = await fetch(`/api/admin/users/${uid}/reset-password`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const d = await r.json();
+        if (r.ok) {
+          document.getElementById("temp-pw").textContent = `Temp password: ${d.temp_password}`;
+        } else {
+          alert(d.error || "Failed");
+        }
+      });
+    }
+  }
+
   async function load() {
     try {
       const res = await fetch(`/api/admin/users/${uid}`);
@@ -152,50 +226,9 @@
       }
 
       const u = data.user;
-      panel.innerHTML = `
-      <h2>${esc(u.username)}</h2>
-      <form id="user-edit" class="inline-form">
-        <label>Email <input type="email" id="u-email" value="${esc(u.email || "")}"></label>
-        <label>Username <input type="text" id="u-name" value="${esc(u.username)}"></label>
-        <button type="submit">Save user</button>
-      </form>
-      <div class="actions" style="margin-top:0.75rem">
-        <button type="button" id="reset-pw" class="secondary">Set temp password</button>
-        <span id="temp-pw" class="q-meta"></span>
-      </div>
-      <p class="msg" id="user-msg"></p>`;
-
-      document.getElementById("user-edit").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const r = await fetch(`/api/admin/users/${uid}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: document.getElementById("u-email").value.trim(),
-            username: document.getElementById("u-name").value.trim(),
-          }),
-        });
-        const d = await r.json();
-        document.getElementById("user-msg").textContent = r.ok ? "Saved." : d.error || "Failed";
-      });
-
-      document.getElementById("reset-pw").addEventListener("click", async () => {
-        const custom = prompt("Temp password (leave empty for random):", "");
-        const body = custom ? { password: custom } : {};
-        const r = await fetch(`/api/admin/users/${uid}/reset-password`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        const d = await r.json();
-        if (r.ok) {
-          document.getElementById("temp-pw").textContent = `Temp password: ${d.temp_password}`;
-        } else {
-          alert(d.error || "Failed");
-        }
-      });
-
-      renderQuestionCards(data.questions);
+      const capabilities = data.capabilities || {};
+      renderUserPanel(u, capabilities);
+      renderQuestionCards(data.questions, capabilities);
     } catch (err) {
       console.error(err);
       cardsEl.innerHTML = `<p class="msg error">Failed to load questions: ${esc(err.message)}</p>`;

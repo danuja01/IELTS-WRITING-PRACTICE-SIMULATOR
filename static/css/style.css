@@ -872,6 +872,31 @@ body.practice-page {
   padding: 0.1rem 0.35rem;
 }
 
+.badge-sub {
+  background: #6b4a1a;
+}
+
+.perm-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.perm-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.panel-nested {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
 .inline-form {
   display: flex;
   flex-wrap: wrap;

@@ -150,6 +150,8 @@ def _migrate_sqlite(db):
 
     add_col("users", "email", "TEXT")
     add_col("users", "is_admin", "INTEGER NOT NULL DEFAULT 0")
+    add_col("users", "is_sub_admin", "INTEGER NOT NULL DEFAULT 0")
+    add_col("users", "sub_admin_permissions", "TEXT")
     add_col("users", "must_change_password", "INTEGER NOT NULL DEFAULT 0")
     add_col("questions", "image_path", "TEXT")
     add_col("questions", "category_id", "INTEGER REFERENCES categories(id)")
@@ -224,6 +226,8 @@ def _migrate_postgres(db):
 
     add_col("users", "email", "TEXT")
     add_col("users", "is_admin", "INTEGER NOT NULL DEFAULT 0")
+    add_col("users", "is_sub_admin", "INTEGER NOT NULL DEFAULT 0")
+    add_col("users", "sub_admin_permissions", "TEXT")
     add_col("users", "must_change_password", "INTEGER NOT NULL DEFAULT 0")
     add_col("questions", "image_path", "TEXT")
     add_col("questions", "category_id", "INTEGER REFERENCES categories(id)")
@@ -269,6 +273,8 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT NOT NULL,
     email TEXT,
     is_admin INTEGER NOT NULL DEFAULT 0,
+    is_sub_admin INTEGER NOT NULL DEFAULT 0,
+    sub_admin_permissions TEXT,
     must_change_password INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL
 );
@@ -313,6 +319,8 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT NOT NULL,
     email TEXT,
     is_admin INTEGER NOT NULL DEFAULT 0,
+    is_sub_admin INTEGER NOT NULL DEFAULT 0,
+    sub_admin_permissions TEXT,
     must_change_password INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL
 );

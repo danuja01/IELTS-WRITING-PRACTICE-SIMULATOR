@@ -13,9 +13,12 @@
     <button type="button" class="secondary" id="logout-btn">Logout</button>
   </header>
   <main class="home-main">
+    <section class="panel" id="sub-admin-section" hidden>
+      <form id="create-sub-admin-form" class="panel-nested"></form>
+    </section>
     <section class="panel">
       <h2>Users</h2>
-      <p class="q-meta">Manage accounts, reset passwords, view writings. Admins cannot practice here.</p>
+      <p class="q-meta">View students, their questions, and attempts. Full admins can create sub-admins and grant optional capabilities.</p>
       <ul class="q-list" id="user-list"><li class="q-meta">Loading…</li></ul>
     </section>
   </main>
