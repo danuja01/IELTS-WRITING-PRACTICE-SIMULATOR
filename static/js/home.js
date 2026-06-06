@@ -155,15 +155,39 @@
     }
   }
 
-  taskSelect.addEventListener("change", toggleTask1Image);
-  imageInput.addEventListener("change", () => {
-    const file = imageInput.files[0];
-    if (!file) {
-      imagePreview.hidden = true;
+  const IMAGE_PREVIEW_TYPES = new Set([
+    "image/png",
+    "image/jpeg",
+    "image/webp",
+    "image/gif",
+  ]);
+
+  function clearImagePreview() {
+    imagePreview.removeAttribute("src");
+    imagePreview.hidden = true;
+  }
+
+  function showImagePreview(file) {
+    if (!file || !IMAGE_PREVIEW_TYPES.has(file.type)) {
+      clearImagePreview();
       return;
     }
-    imagePreview.src = URL.createObjectURL(file);
-    imagePreview.hidden = false;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result !== "string" || !reader.result.startsWith("data:image/")) {
+        clearImagePreview();
+        return;
+      }
+      imagePreview.src = reader.result;
+      imagePreview.hidden = false;
+    };
+    reader.onerror = () => clearImagePreview();
+    reader.readAsDataURL(file);
+  }
+
+  taskSelect.addEventListener("change", toggleTask1Image);
+  imageInput.addEventListener("change", () => {
+    showImagePreview(imageInput.files[0]);
   });
 
   async function loadCategories() {
