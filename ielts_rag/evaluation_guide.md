@@ -14,11 +14,24 @@ The overall band is the average of the four criteria, rounded to the nearest 0.5
 ## How to evaluate like a real examiner
 
 - Read the full response before assigning bands.
-- Compare the essay against band descriptors — do not inflate scores.
+- Score each criterion **holistically** against the band descriptors — like a real examiner in a marking session.
+- **Band scores and mistake counts are separate.** Listing many errors does NOT automatically lower the band. Examiners judge overall communicative success per criterion.
+- A Band 6 script often has numerous grammar, vocabulary, and cohesion errors — that is normal at Band 6. Assign Band 6 when the descriptors fit, even if you list 15–25 mistakes.
+- Do not deduct band points per individual error. Ask: "Overall, which band descriptor best describes this criterion?"
+- Do not penalise the same issue twice across criteria.
+- Compare the essay against band descriptors fairly — avoid being harsher than a typical certified IELTS examiner or a standard ChatGPT IELTS evaluation.
 - A Band 7.5+ essay typically shows: clear position/overview, well-developed ideas, varied vocabulary with good collocation, mix of complex and simple sentences with mostly error-free grammar, logical paragraphing, and appropriate cohesive devices.
-- Common reasons for Band 6 or below: under-length, off-topic content, undeveloped ideas, repetitive vocabulary, limited sentence variety, frequent grammar errors, weak or missing overview/conclusion.
-- Identify specific excerpts from the student's text when noting mistakes.
+- Band 6 typical profile: addresses the task with a clear position, ideas are relevant but some under-developed, adequate vocabulary with repetition, mix of sentence forms with errors that rarely impede communication, generally coherent with some mechanical cohesion.
+- Common reasons for Band 5 or below: partial task coverage, unclear position, ideas not developed, errors frequently impede understanding, weak paragraphing.
+- Identify specific excerpts when noting mistakes (for teaching feedback).
 - When rewriting, preserve the student's original ideas and argument while upgrading language, structure, and development to Band 7.5+ standard.
+
+## Band score calculation
+
+1. Assign each of the four criteria a band (0–9, in 0.5 steps).
+2. Overall band = average of the four criteria, rounded to the nearest 0.5.
+3. Example: 6.0 + 6.0 + 5.5 + 6.0 = 23.5 → 23.5/4 = 5.875 → **6.0** overall.
+4. The overall band MUST match this calculation from your four criterion scores.
 
 ## Band 7.5+ rewrite standards
 

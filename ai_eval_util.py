@@ -1,6 +1,7 @@
 """Lightweight RAG + OpenAI evaluation for IELTS writing attempts."""
 from __future__ import annotations
 
+import math
 import os
 import re
 from pathlib import Path
@@ -144,30 +145,45 @@ def _clean_rewrite(text: str) -> str:
     return text.strip()
 
 
+def _round_band_average(scores: CriterionScores) -> float:
+    avg = (
+        scores.task
+        + scores.coherence_cohesion
+        + scores.lexical_resource
+        + scores.grammatical_range
+    ) / 4.0
+    # IELTS rounds halves up (5.25 → 5.5); avoid Python banker's rounding.
+    return math.floor(avg * 2 + 0.5) / 2
+
+
 def _analysis_system_prompt(task_type: str) -> str:
     rag = retrieve_rag_context(task_type)
     task_criterion = "Task Achievement" if (task_type or "").lower() == "task1" else "Task Response"
     categories = ", ".join(MISTAKE_CATEGORIES)
     return f"""You are a certified IELTS Writing examiner with years of experience scoring Academic module scripts.
 
-Evaluate the student's essay strictly using official IELTS band descriptors and the reference material below.
+Evaluate the student's essay using official IELTS band descriptors and the reference material below.
 Apply the four criteria ({task_criterion}, Coherence and Cohesion, Lexical Resource, Grammatical Range and Accuracy).
-Calculate the overall band as the average of the four criteria, rounded to the nearest 0.5.
 
 Reference material (RAG context):
 {rag}
 
-Mistake identification rules (CRITICAL):
-- List EVERY error in the essay — do not skip or summarise. Be exhaustive.
-- Include all grammar errors, spelling mistakes, wrong word forms, awkward or unnatural sentences, weak vocabulary, cohesion problems, punctuation issues, and task-response gaps.
-- Each mistake must have wrong_text (exact excerpt from the essay) and corrected_text (the fix).
-- Use category from: {categories}
-- Short essays may have 10+ mistakes; longer essays often have 20–40+. Include them all.
+SCORING RULES (apply BEFORE listing mistakes):
+1. Read the entire essay once for overall impression.
+2. Assign each criterion a band holistically — which band descriptor best fits overall?
+3. Band 6 essays commonly have many grammar and vocabulary errors; that is expected at this level.
+4. Do NOT lower bands just because you can find many mistakes. Examiners judge communicative success.
+5. Score fairly — align with how a standard experienced IELTS examiner or ChatGPT IELTS evaluation would score.
+6. If the essay addresses the task with a clear position and ideas are understandable despite errors, Task Response is often Band 6.
+7. If errors rarely impede communication, Grammatical Range and Lexical Resource are often Band 6, not Band 5.
+8. Set band_score to the average of the four criteria rounded to the nearest 0.5.
 
-Do NOT write a rewritten essay in this response — scoring and mistakes only.
+MISTAKE LISTING (separate from scoring — for student feedback):
+- List EVERY error for teaching purposes — grammar, spelling, vocabulary, awkward phrasing, cohesion, punctuation, task gaps.
+- Each mistake: wrong_text, corrected_text, category ({categories}), issue, suggestion.
+- Many mistakes at Band 6 is normal; the mistake list must NOT drag criterion scores down.
 
-Scoring rules:
-- Be fair but rigorous — mirror how real examiners score."""
+Do NOT write a rewritten essay in this response — scoring and mistakes only."""
 
 
 def _rewrite_system_prompt(task_type: str) -> str:
@@ -442,6 +458,7 @@ def evaluate_writing(
         word_count=word_count,
         elapsed_minutes=elapsed_minutes,
     )
+    analysis.band_score = _round_band_average(analysis.criterion_scores)
 
     if on_progress:
         on_progress(70, "Writing complete Band 7.5+ version…")
