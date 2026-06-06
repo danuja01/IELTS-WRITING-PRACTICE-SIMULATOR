@@ -13,17 +13,17 @@
   </header>
   <main class="home-main">
     <section class="panel">
-      <h2>OpenRouter API key</h2>
+      <h2>OpenAI API key</h2>
       <p class="q-meta">
-        AI essay evaluation uses your own OpenRouter API key so you can access ChatGPT/OpenAI models
-        (e.g. <code>openai/gpt-4o-mini</code>) via
-        <a href="https://openrouter.ai/" target="_blank" rel="noopener">OpenRouter</a>.
+        AI essay evaluation uses your own OpenAI API key (ChatGPT).
+        Get a key from
+        <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">OpenAI</a>.
         Your key is encrypted and stored only for your account.
       </p>
       <p class="msg" id="settings-msg"></p>
       <form id="ai-settings-form">
-        <label for="openrouter-key">OpenRouter API key</label>
-        <input type="password" id="openrouter-key" autocomplete="off" placeholder="sk-or-…">
+        <label for="openai-key">OpenAI API key</label>
+        <input type="password" id="openai-key" autocomplete="off" placeholder="sk-…">
         <p class="q-meta" id="key-status">Loading…</p>
         <div class="inline-form">
           <button type="submit">Save key</button>

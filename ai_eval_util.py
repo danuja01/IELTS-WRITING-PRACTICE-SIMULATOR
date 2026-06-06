@@ -1,4 +1,4 @@
-"""Lightweight RAG + OpenRouter evaluation for IELTS writing attempts."""
+"""Lightweight RAG + OpenAI evaluation for IELTS writing attempts."""
 from __future__ import annotations
 
 import os
@@ -10,8 +10,7 @@ from pydantic import BaseModel, Field
 
 APP_DIR = Path(__file__).resolve().parent
 RAG_DIR = APP_DIR / "ielts_rag"
-DEFAULT_MODEL = os.environ.get("OPENROUTER_EVAL_MODEL", "openai/gpt-4o-mini")
-OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+DEFAULT_MODEL = os.environ.get("OPENAI_EVAL_MODEL", "gpt-4o-mini")
 
 
 class CriterionScores(BaseModel):
@@ -148,13 +147,13 @@ def evaluate_writing(
     model: str | None = None,
 ) -> WritingEvaluationResult:
     if not api_key:
-        raise ValueError("OpenRouter API key is not configured")
+        raise ValueError("OpenAI API key is not configured")
     if not (essay or "").strip():
         raise ValueError("Essay content is empty")
 
     elapsed_minutes = (elapsed_ms / 60000.0) if elapsed_ms is not None else None
     client = instructor.from_openai(
-        OpenAI(base_url=OPENROUTER_BASE_URL, api_key=api_key),
+        OpenAI(api_key=api_key),
         mode=instructor.Mode.JSON,
     )
 

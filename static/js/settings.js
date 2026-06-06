@@ -1,6 +1,6 @@
 (function () {
   const form = document.getElementById("ai-settings-form");
-  const keyInput = document.getElementById("openrouter-key");
+  const keyInput = document.getElementById("openai-key");
   const statusEl = document.getElementById("key-status");
   const msgEl = document.getElementById("settings-msg");
   const removeBtn = document.getElementById("remove-key-btn");
@@ -30,13 +30,13 @@
     e.preventDefault();
     const key = keyInput.value.trim();
     if (!key) {
-      showMsg("Enter your OpenRouter API key.", true);
+      showMsg("Enter your OpenAI API key.", true);
       return;
     }
     const res = await fetch("/api/settings/ai", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ openrouter_api_key: key }),
+      body: JSON.stringify({ openai_api_key: key }),
     });
     const data = await res.json();
     if (!res.ok) {
@@ -49,7 +49,7 @@
   });
 
   removeBtn.addEventListener("click", async () => {
-    if (!confirm("Remove your saved OpenRouter API key?")) return;
+    if (!confirm("Remove your saved OpenAI API key?")) return;
     const res = await fetch("/api/settings/ai", { method: "DELETE" });
     const data = await res.json();
     if (!res.ok) {

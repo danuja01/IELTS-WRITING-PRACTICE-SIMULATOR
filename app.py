@@ -270,14 +270,14 @@ def _writing_json(row):
     return d
 
 
-def _get_user_openrouter_key(user_id: int) -> str:
+def _get_user_openai_key(user_id: int) -> str:
     row = get_db().execute(
-        "SELECT openrouter_api_key_enc FROM user_api_keys WHERE user_id = ?",
+        "SELECT openai_api_key_enc FROM user_api_keys WHERE user_id = ?",
         (user_id,),
     ).fetchone()
     if not row:
         return ""
-    return decrypt_secret(row["openrouter_api_key_enc"])
+    return decrypt_secret(row["openai_api_key_enc"])
 
 
 def _evaluation_json(row):
@@ -1309,12 +1309,12 @@ def save_writing():
 @student_required
 def get_ai_settings():
     row = get_db().execute(
-        "SELECT openrouter_api_key_enc, updated_at FROM user_api_keys WHERE user_id = ?",
+        "SELECT openai_api_key_enc, updated_at FROM user_api_keys WHERE user_id = ?",
         (session["user_id"],),
     ).fetchone()
     if not row:
         return jsonify({"configured": False, "masked_key": "", "updated_at": None})
-    plain = decrypt_secret(row["openrouter_api_key_enc"])
+    plain = decrypt_secret(row["openai_api_key_enc"])
     return jsonify({
         "configured": bool(plain),
         "masked_key": mask_api_key(plain),
@@ -1326,9 +1326,9 @@ def get_ai_settings():
 @student_required
 def save_ai_settings():
     data = request.get_json(silent=True) or {}
-    api_key = (data.get("openrouter_api_key") or "").strip()
+    api_key = (data.get("openai_api_key") or "").strip()
     if not api_key:
-        return jsonify({"error": "openrouter_api_key required"}), 400
+        return jsonify({"error": "openai_api_key required"}), 400
     ts = now_iso()
     enc = encrypt_secret(api_key)
     db = get_db()
@@ -1338,12 +1338,12 @@ def save_ai_settings():
     ).fetchone()
     if existing:
         db.execute(
-            "UPDATE user_api_keys SET openrouter_api_key_enc = ?, updated_at = ? WHERE user_id = ?",
+            "UPDATE user_api_keys SET openai_api_key_enc = ?, updated_at = ? WHERE user_id = ?",
             (enc, ts, session["user_id"]),
         )
     else:
         db.execute(
-            "INSERT INTO user_api_keys (user_id, openrouter_api_key_enc, updated_at) VALUES (?, ?, ?)",
+            "INSERT INTO user_api_keys (user_id, openai_api_key_enc, updated_at) VALUES (?, ?, ?)",
             (session["user_id"], enc, ts),
         )
     db.commit()
@@ -1397,10 +1397,10 @@ def evaluate_writing_attempt(wid):
     if not row:
         return jsonify({"error": "not found or attempt not finished"}), 404
 
-    api_key = _get_user_openrouter_key(session["user_id"])
+    api_key = _get_user_openai_key(session["user_id"])
     if not api_key:
         return jsonify({
-            "error": "OpenRouter API key not configured",
+            "error": "OpenAI API key not configured",
             "settings_url": url_for("settings_page"),
         }), 400
 
