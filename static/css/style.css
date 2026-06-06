@@ -711,11 +711,14 @@ body.practice-page {
 }
 
 .modal-eval {
-  max-width: 720px;
-  max-height: min(90vh, 900px);
+  width: min(800px, calc(100vw - 2rem));
+  height: min(720px, calc(100vh - 2rem));
+  max-width: 800px;
+  max-height: 720px;
   display: flex;
   flex-direction: column;
   padding: 0;
+  overflow: hidden;
 }
 
 .modal-eval-head {
@@ -742,7 +745,10 @@ body.practice-page {
 }
 
 .eval-modal-body {
-  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 1rem 1.25rem;
 }
 
@@ -816,18 +822,100 @@ body.practice-page {
   color: var(--muted);
 }
 
-.eval-excerpt {
-  margin: 0.35rem 0;
-  padding: 0.5rem 0.75rem;
-  border-left: 3px solid var(--accent);
-  background: var(--bg);
+.eval-correction-line {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.5rem 0;
   font-family: var(--font-write);
-  font-size: 0.9rem;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.eval-wrong {
+  color: var(--danger);
+  background: var(--danger-bg);
+  padding: 0.35rem 0.5rem;
+  border-radius: 2px;
+}
+
+.eval-correct {
+  color: var(--ok);
+  background: #ecfdf3;
+  padding: 0.35rem 0.5rem;
+  border-radius: 2px;
+}
+
+.eval-issue-text {
+  color: var(--text);
+}
+
+.eval-issue,
+.eval-suggestion {
+  margin: 0.35rem 0 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.eval-count {
+  font-weight: normal;
+  color: var(--muted);
+  font-size: 0.85em;
+}
+
+.eval-highlight,
+.eval-highlight-inline {
+  color: var(--ok);
+  font-weight: 700;
 }
 
 .eval-rewrite {
-  max-height: 240px;
-  overflow: auto;
+  max-height: none;
+  white-space: pre-wrap;
+  line-height: 1.55;
+}
+
+.eval-rewrite-legend {
+  margin-bottom: 0.5rem;
+}
+
+.eval-progress-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.eval-progress-label {
+  margin: 0;
+  color: var(--muted);
+  text-align: center;
+}
+
+.eval-progress-track {
+  width: 100%;
+  max-width: 360px;
+  height: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.eval-progress-bar {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.4s ease;
+}
+
+.eval-progress-pct {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
 }
 
 .eval-meta {

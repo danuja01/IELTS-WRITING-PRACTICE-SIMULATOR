@@ -53,6 +53,39 @@
     return labels[key] || key;
   }
 
+  function renderRewrite(text) {
+    if (!text) return "";
+    const parts = String(text).split(/(<<[^>]+>>)/g);
+    return parts
+      .map((part) => {
+        if (part.startsWith("<<") && part.endsWith(">>")) {
+          return `<strong class="eval-highlight">${esc(part.slice(2, -2))}</strong>`;
+        }
+        return esc(part);
+      })
+      .join("");
+  }
+
+  function renderMistake(m) {
+    const wrong = m.wrong_text || m.excerpt || "";
+    const corrected = m.corrected_text || m.suggestion || "";
+    const correctionLine =
+      wrong || corrected
+        ? `<p class="eval-correction-line">
+            ${wrong ? `<span class="eval-wrong">❌ ${esc(wrong)}</span>` : ""}
+            ${corrected ? `<span class="eval-correct">✅ ${esc(corrected)}</span>` : ""}
+          </p>`
+        : "";
+
+    return `
+      <li class="eval-mistake">
+        <span class="eval-mistake-cat">${esc(m.category || "Issue")}</span>
+        ${correctionLine}
+        <p class="eval-issue"><strong>Issue:</strong> <span class="eval-issue-text">${esc(m.issue || "")}</span></p>
+        ${m.suggestion && m.corrected_text ? `<p class="eval-suggestion"><strong>Tip:</strong> ${esc(m.suggestion)}</p>` : ""}
+      </li>`;
+  }
+
   function renderEvaluation(evalData, taskType) {
     if (!evalData) {
       return '<p class="q-meta">No evaluation yet.</p>';
@@ -68,17 +101,8 @@
       )
       .join("");
 
-    const mistakes = (evalData.mistakes || [])
-      .map(
-        (m) => `
-        <li class="eval-mistake">
-          <span class="eval-mistake-cat">${esc(m.category)}</span>
-          <blockquote class="eval-excerpt">"${esc(m.excerpt)}"</blockquote>
-          <p><strong>Issue:</strong> ${esc(m.issue)}</p>
-          <p><strong>Suggestion:</strong> ${esc(m.suggestion)}</p>
-        </li>`
-      )
-      .join("");
+    const mistakes = (evalData.mistakes || []).map(renderMistake).join("");
+    const mistakeCount = (evalData.mistakes || []).length;
 
     const improvements = (evalData.areas_for_improvement || [])
       .map((a) => `<li>${esc(a)}</li>`)
@@ -95,8 +119,8 @@
         <p class="eval-text">${esc(evalData.overall_feedback)}</p>
       </section>
       <section class="eval-section">
-        <h4>Mistakes & areas to improve</h4>
-        <ul class="eval-mistake-list">${mistakes}</ul>
+        <h4>All mistakes found <span class="eval-count">(${mistakeCount})</span></h4>
+        <ul class="eval-mistake-list">${mistakes || '<li class="q-meta">No mistakes listed.</li>'}</ul>
       </section>
       <section class="eval-section">
         <h4>Focus areas</h4>
@@ -104,15 +128,27 @@
       </section>
       <section class="eval-section">
         <h4>Band 7.5+ rewrite</h4>
-        <pre class="essay-readonly eval-rewrite">${esc(evalData.rewritten_essay)}</pre>
+        <p class="q-meta eval-rewrite-legend"><span class="eval-highlight-inline">Green bold</span> = improved words &amp; phrases</p>
+        <div class="essay-readonly eval-rewrite">${renderRewrite(evalData.rewritten_essay)}</div>
       </section>
       <p class="q-meta eval-meta">Generated ${esc(evalData.updated_at || evalData.created_at || "")}${evalData.model ? ` · ${esc(evalData.model)}` : ""}</p>`;
   }
 
-  function showModalLoading(message) {
-    evalModalBody.innerHTML = `<p class="q-meta eval-loading">${esc(message)}</p>`;
+  function showModalProgress(percent, message) {
+    evalModalBody.innerHTML = `
+      <div class="eval-progress-wrap">
+        <p class="eval-progress-label">${esc(message)}</p>
+        <div class="eval-progress-track" role="progressbar" aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100">
+          <div class="eval-progress-bar" style="width:${Math.min(100, Math.max(0, percent))}%"></div>
+        </div>
+        <p class="eval-progress-pct">${Math.round(percent)}%</p>
+      </div>`;
     evalRegenerate.hidden = true;
     evalModal.classList.add("show");
+  }
+
+  function showModalLoading(message) {
+    showModalProgress(0, message);
   }
 
   function showModalError(message, settingsUrl) {
@@ -160,17 +196,63 @@
     }
   }
 
+  async function consumeEvaluateStream(res) {
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let finalResult = null;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const chunks = buffer.split("\n\n");
+      buffer = chunks.pop() || "";
+
+      for (const chunk of chunks) {
+        const line = chunk.trim();
+        if (!line.startsWith("data:")) continue;
+        const raw = line.slice(5).trim();
+        if (!raw) continue;
+        let data;
+        try {
+          data = JSON.parse(raw);
+        } catch {
+          continue;
+        }
+
+        if (data.type === "progress") {
+          showModalProgress(data.percent || 0, data.message || "Evaluating…");
+        } else if (data.type === "error") {
+          throw new Error(data.error || "Evaluation failed");
+        } else if (data.type === "complete") {
+          showModalProgress(100, data.message || "Complete");
+          finalResult = data.result;
+        }
+      }
+    }
+
+    return finalResult;
+  }
+
   async function runEvaluation(isRegenerate) {
     if (evaluating || adminView) return;
     evaluating = true;
-    showModalLoading(isRegenerate ? "Regenerating evaluation…" : "Evaluating with AI…");
+    showModalProgress(0, isRegenerate ? "Regenerating evaluation…" : "Starting evaluation…");
     try {
-      const res = await fetch(`/api/writings/${wid}/evaluate`, { method: "POST" });
-      const data = await res.json();
+      const res = await fetch(`/api/writings/${wid}/evaluate?stream=1`, { method: "POST" });
       if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
         showModalError(data.error || "Evaluation failed", data.settings_url);
         return;
       }
+
+      const data = await consumeEvaluateStream(res);
+      if (!data) {
+        showModalError("Evaluation failed: no result returned");
+        return;
+      }
+
       cachedEvaluation = data;
       updateEvaluateButton();
       evalModalBody.innerHTML = renderEvaluation(
@@ -178,6 +260,8 @@
         cachedWriting?.question_task_type || "task2"
       );
       evalRegenerate.hidden = false;
+    } catch (err) {
+      showModalError(err.message || "Evaluation failed");
     } finally {
       evaluating = false;
     }
