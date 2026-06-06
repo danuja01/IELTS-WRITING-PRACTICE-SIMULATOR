@@ -39,7 +39,15 @@ DATA_DIR = os.path.dirname(DB_PATH)
 UPLOAD_DIR = os.path.join(DATA_DIR, "uploads")
 ALLOWED_IMAGE_EXT = frozenset({".png", ".jpg", ".jpeg", ".webp", ".gif"})
 MAX_IMAGE_BYTES = 8 * 1024 * 1024
-EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+def _is_valid_email(email: str) -> bool:
+    if not email or len(email) > 254 or " " in email or "@" not in email:
+        return False
+    local, domain = email.rsplit("@", 1)
+    if not local or not domain or "." not in domain:
+        return False
+    if domain.startswith(".") or domain.endswith(".") or ".." in domain:
+        return False
+    return True
 
 SUB_ADMIN_PERMISSIONS = {
     "reset_password": "Reset student passwords",
@@ -563,7 +571,7 @@ def api_setup_admin():
     password = data.get("password") or ""
     if len(username) < 2 or len(password) < 4:
         return jsonify({"error": "username (2+) and password (4+) required"}), 400
-    if not email or not EMAIL_RE.match(email):
+    if not email or not _is_valid_email(email):
         return jsonify({"error": "valid email required"}), 400
     db = get_db()
     try:
@@ -607,7 +615,7 @@ def register():
     password = data.get("password") or ""
     if len(username) < 2 or len(password) < 4:
         return jsonify({"error": "username (2+) and password (4+) required"}), 400
-    if not email or not EMAIL_RE.match(email):
+    if not email or not _is_valid_email(email):
         return jsonify({"error": "valid email required"}), 400
     db = get_db()
     try:
@@ -714,7 +722,7 @@ def api_forgot_password():
 
     data = request.get_json(silent=True) or {}
     email = _normalize_email(data.get("email") or "")
-    if not email or not EMAIL_RE.match(email):
+    if not email or not _is_valid_email(email):
         return jsonify({"error": "valid email required"}), 400
 
     db = get_db()
@@ -766,7 +774,7 @@ def api_reset_password():
     password = data.get("password") or ""
     confirm = data.get("confirm") or ""
 
-    if not email or not EMAIL_RE.match(email):
+    if not email or not _is_valid_email(email):
         return jsonify({"error": "valid email required"}), 400
     if not re.fullmatch(r"\d{6}", code):
         return jsonify({"error": "enter the 6-digit code from your email"}), 400
@@ -1450,7 +1458,7 @@ def admin_create_sub_admin():
     perms = data.get("permissions") or {}
     if len(username) < 2 or len(password) < 4:
         return jsonify({"error": "username (2+) and password (4+) required"}), 400
-    if not email or not EMAIL_RE.match(email):
+    if not email or not _is_valid_email(email):
         return jsonify({"error": "valid email required"}), 400
     merged = {k: bool(perms.get(k, False)) for k in SUB_ADMIN_PERMISSIONS}
     db = get_db()
@@ -1558,7 +1566,7 @@ def admin_update_user(uid):
         return jsonify({"error": "cannot edit this account"}), 400
     if row["is_admin"] and uid != session["user_id"]:
         return jsonify({"error": "cannot edit other admins"}), 400
-    if email and not EMAIL_RE.match(email):
+    if email and not _is_valid_email(email):
         return jsonify({"error": "invalid email"}), 400
     if username:
         try:
