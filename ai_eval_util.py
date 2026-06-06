@@ -117,10 +117,10 @@ class WritingRewriteResult(BaseModel):
     rewritten_essay: str = Field(
         ...,
         description=(
-            "The COMPLETE Band 7.5+ essay from first word to last. "
-            "Must include every paragraph fully developed. "
-            "Use plain text with blank lines between paragraphs. "
-            "Wrap improved words/phrases in <<double angle brackets>>. "
+            "A COMPLETE original Band 7.5+ model answer written from scratch — "
+            "not an edit of the student's text. "
+            "Plain text with blank lines between paragraphs. "
+            "Wrap standout vocabulary/phrases in <<double angle brackets>>. "
             "No HTML tags."
         ),
     )
@@ -284,30 +284,37 @@ Do NOT rewrite the essay."""
 
 def _rewrite_system_prompt(task_type: str) -> str:
     if _is_task1(task_type):
-        return """You are an expert IELTS Task 1 coach writing a Band 7.5+ **report** (NOT an essay).
+        return """You are an expert IELTS Task 1 writer composing an **original** Band 7.5+ model report from scratch.
+
+You are NOT editing the student's work. Write as an expert who has only the question and the visual.
 
 STRUCTURE (exactly 4 paragraphs — NO conclusion):
-1. **Introduction:** Paraphrase the task title only (1–2 sentences). No data. No overview here.
-2. **Overview:** Main trends/differences at a glance (2–3 sentences). No specific figures.
-3. **Body 1:** One group of key features with accurate data and comparisons from the chart.
+1. **Introduction:** Paraphrase the task (1–2 sentences). No data. No overview here.
+2. **Overview:** Main trends/differences/changes at a glance (2–3 sentences). No specific figures.
+3. **Body 1:** One logical group of key features with accurate data from the visual.
 4. **Body 2:** Remaining key features with accurate data and comparisons.
 
 CRITICAL RULES:
-- Read data from the chart image provided — never invent figures.
-- **NO conclusion paragraph. NO personal opinion.**
-- Target length: **150–180 words** total. Be concise.
-- Wrap improved words/phrases in <<double angle brackets>>.
-- Plain text, blank lines between paragraphs. No HTML tags."""
+- Analyse the attached visual and use accurate figures — never invent data.
+- Select and group the most significant features for the task type (graph, table, map, process, etc.).
+- **NO conclusion. NO opinion.**
+- **150–180 words.** Concise, selective reporting.
+- Do NOT copy, paraphrase, or patch the student's sentences.
+- Wrap strong vocabulary/phrases in <<double angle brackets>>.
+- Plain text only. Blank lines between paragraphs."""
 
-    return """You are an expert IELTS Task 2 coach writing a Band 7.5+ **essay**.
+    return """You are an expert IELTS Task 2 writer composing an **original** Band 7.5+ model essay from scratch.
 
-STRUCTURE: Introduction with thesis → 2–3 developed body paragraphs → conclusion summarising your position.
+You are NOT editing the student's work. Write a fresh essay that fully answers the question in the prompt.
+
+STRUCTURE: Introduction with clear thesis → 2–3 developed body paragraphs (point → explain → example) → conclusion.
 
 RULES:
-- Write the COMPLETE essay through the conclusion.
-- Target length per user message (typically 280+ words).
-- Wrap improved words/phrases in <<double angle brackets>>.
-- Plain text, blank lines between paragraphs. No HTML tags."""
+- Answer every part of the question with a clear, consistent position.
+- Use your own ideas and examples — do NOT copy or paraphrase the student's essay.
+- **280–330 words.** Complete essay through the conclusion.
+- Wrap strong vocabulary/phrases in <<double angle brackets>>.
+- Plain text only. Blank lines between paragraphs."""
 
 
 def _analysis_user_prompt(
@@ -354,50 +361,50 @@ def _rewrite_user_prompt(
     task_type: str,
     question_title: str,
     question_prompt: str,
-    essay: str,
-    word_count: int | None,
     analysis: WritingEvaluationAnalysis,
     has_chart: bool,
 ) -> str:
-    target = _target_word_count(task_type, word_count)
-    top_issues = "\n".join(f"- {m.category}: {m.issue}" for m in analysis.mistakes[:12])
     improvements = "\n".join(f"- {a}" for a in analysis.areas_for_improvement)
-    chart_note = (
-        "\nThe chart/diagram image is attached — use accurate figures from it.\n"
-        if has_chart and _is_task1(task_type)
-        else ""
-    )
-    length_line = (
-        f"Target length: {target} words maximum (Task 1: 150–180 words)."
-        if _is_task1(task_type)
-        else f"Target length: at least {target} words."
-    )
-    closing = (
-        "Write the COMPLETE improved report (4 paragraphs: intro, overview, body 1, body 2). "
-        "150–180 words. NO conclusion. Use chart data accurately."
-        if _is_task1(task_type)
-        else "Write the COMPLETE improved essay. Preserve the student's argument. Finish with a proper conclusion."
-    )
 
-    return f"""{_task_label(task_type)} — write a complete Band 7.5+ model answer
+    if _is_task1(task_type):
+        chart_note = (
+            "The visual is attached — this is your **primary source** for all data and features."
+            if has_chart
+            else "No visual attached — write from the question prompt only."
+        )
+        return f"""{_task_label(task_type)} — write an **original** Band 7.5+ model report from scratch
 
 Question title: {question_title or "Untitled"}
 Question prompt:
-{question_prompt or "(not provided)"}{chart_note}
-Original student writing ({word_count or "unknown"} words):
-{essay}
+{question_prompt or "(not provided)"}
 
-{length_line}
+{chart_note}
 
-Key issues to fix:
-{top_issues}
+IMPORTANT: Do NOT copy, paraphrase, or improve the student's attempt. Write a completely new model report as an expert would from the question and visual alone.
 
-Focus areas:
+Quality checklist (what a Band 7.5+ report needs):
 {improvements}
 
-Examiner summary: {analysis.overall_feedback}
+Examiner notes on what was weak in the student attempt (avoid these; do not reuse their text):
+{analysis.overall_feedback}
 
-{closing}"""
+Write now: 4 paragraphs (intro, overview, body 1, body 2), 150–180 words, no conclusion."""
+
+    return f"""{_task_label(task_type)} — write an **original** Band 7.5+ model essay from scratch
+
+Question title: {question_title or "Untitled"}
+Question prompt:
+{question_prompt or "(not provided)"}
+
+IMPORTANT: Do NOT copy, paraphrase, or improve the student's essay. Write a completely new model essay that fully answers the question above.
+
+Quality checklist (what a Band 7.5+ essay needs):
+{improvements}
+
+Examiner notes on what was weak in the student attempt (avoid these; do not reuse their text):
+{analysis.overall_feedback}
+
+Write now: full essay with introduction, developed body paragraphs, and conclusion. 280–330 words."""
 
 
 def _make_client(api_key: str):
@@ -459,8 +466,6 @@ def _run_rewrite(
         task_type=task_type,
         question_title=question_title,
         question_prompt=question_prompt,
-        essay=essay,
-        word_count=word_count,
         analysis=analysis,
         has_chart=bool(chart),
     )
@@ -511,19 +516,19 @@ def _continue_rewrite(
 ) -> str:
     if _is_task1(task_type):
         finish_instruction = (
-            "Continue EXACTLY where it stopped and complete the report (4 paragraphs total). "
-            "NO conclusion. Target 150–180 words. Use chart data accurately."
+            "Continue EXACTLY where it stopped and finish the original model report "
+            "(4 paragraphs total, NO conclusion, 150–180 words). Use the visual for accurate data."
         )
     else:
         finish_instruction = (
-            f"Continue EXACTLY where it stopped and complete the essay through a proper conclusion. "
-            f"Target at least {target_words} words."
+            f"Continue EXACTLY where it stopped and finish the original model essay "
+            f"through a proper conclusion. Target {target_words}+ words."
         )
     user_text = (
-        f"The following Band 7.5+ rewrite was cut off. {finish_instruction} "
-        f"Use <<>> for improvements. Plain text only.\n\n"
+        f"The following Band 7.5+ model answer was cut off. {finish_instruction} "
+        f"Do not copy the student's writing. Use <<>> for strong phrases. Plain text only.\n\n"
         f"Question prompt:\n{question_prompt or '(not provided)'}\n\n"
-        f"Partial rewrite so far:\n{partial}"
+        f"Partial model answer so far:\n{partial}"
     )
     continuation: WritingRewriteResult = client.chat.completions.create(
         model=model,

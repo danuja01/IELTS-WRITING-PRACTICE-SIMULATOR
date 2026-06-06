@@ -459,3 +459,16 @@ Mixed Charts:
 - 170–210 words
 
 Responses should remain concise, selective and comparative rather than describing every detail shown.
+
+---
+
+# Band 7.5+ Model Report Standards
+
+The model answer must be an **original report written from scratch** by analysing the visual and question — **not** an edit or improvement of the student's attempt.
+
+* Identify the task type and apply the correct framework
+* Use the visual as the primary data source (when provided)
+* 4 paragraphs: intro → overview → body 1 → body 2
+* No conclusion, no opinion
+* 150–180 words (maps may extend slightly to ~200)
+* Accurate, selective data — never invent figures

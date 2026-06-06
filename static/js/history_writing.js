@@ -130,8 +130,8 @@
         <ul class="eval-improve-list">${improvements}</ul>
       </section>
       <section class="eval-section">
-        <h4>Band 7.5+ ${(taskType || "task2") === "task1" ? "model report" : "rewrite"}</h4>
-        <p class="q-meta eval-rewrite-legend"><span class="eval-highlight-inline">Green bold</span> = improved words &amp; phrases${(taskType || "task2") === "task1" ? " · Task 1: intro, overview, 2 body paragraphs (no conclusion)" : ""}</p>
+        <h4>Band 7.5+ ${(taskType || "task2") === "task1" ? "model report" : "model essay"}</h4>
+        <p class="q-meta eval-rewrite-legend">Original model answer written from the ${(taskType || "task2") === "task1" ? "chart/visual" : "question"} — not an edit of your text. <span class="eval-highlight-inline">Green bold</span> = strong vocabulary &amp; phrases${(taskType || "task2") === "task1" ? " · intro, overview, 2 body paragraphs (no conclusion)" : ""}</p>
         <div class="essay-readonly eval-rewrite">${renderRewrite(evalData.rewritten_essay)}</div>
       </section>
       <p class="q-meta eval-meta">Generated ${esc(evalData.updated_at || evalData.created_at || "")}${evalData.model ? ` · ${esc(evalData.model)}` : ""}</p>`;
@@ -352,7 +352,7 @@
         </section>`
       : `<section class="panel" id="eval-panel">
           <h2>AI Evaluation</h2>
-          <p class="q-meta" id="eval-status">Get IELTS-style feedback, band score, and a Band 7.5+ rewrite.</p>
+          <p class="q-meta" id="eval-status">Get IELTS-style feedback, band score, and an original Band 7.5+ model answer.</p>
           <button type="button" id="evaluate-btn">Evaluate with AI</button>
         </section>`;
 

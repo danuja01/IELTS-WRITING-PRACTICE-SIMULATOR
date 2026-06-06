@@ -339,26 +339,16 @@ A Band 6 essay may contain many language mistakes while still meeting Band 6 des
 
 ---
 
-# Band 7.5+ Rewrite Standards
+# Band 7.5+ Model Essay Standards
 
-The rewrite must:
+The model answer must be an **original essay written from scratch** — not an edit of the student's attempt.
 
-* Preserve the candidate's original ideas
-* Improve development
-* Improve cohesion
-* Improve vocabulary
-* Improve grammar
-* Maintain formal academic style
-
-Target length:
-
-* 280–330 words
-
-Use:
-
-Point → Explanation → Example → Link
-
-throughout body paragraphs.
+* Fully answer the question in the prompt with a clear position
+* Developed body paragraphs with examples
+* Strong conclusion
+* Formal academic style, varied vocabulary, complex sentences
+* Target length: 280–330 words
+* Use Point → Explanation → Example → Link in body paragraphs
 
 ---
 
