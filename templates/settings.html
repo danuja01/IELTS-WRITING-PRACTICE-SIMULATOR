@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Settings</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ app_version }}">
+</head>
+<body>
+  <header class="topbar">
+    <h1>AI Settings</h1>
+    <a href="{{ url_for('home') }}" class="btn secondary">← Home</a>
+  </header>
+  <main class="home-main">
+    <section class="panel">
+      <h2>OpenAI API key</h2>
+      <p class="q-meta">
+        AI essay evaluation uses your own OpenAI API key (ChatGPT).
+        Get a key from
+        <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">OpenAI</a>.
+        Your key is encrypted and stored only for your account.
+      </p>
+      <p class="msg" id="settings-msg"></p>
+      <form id="ai-settings-form">
+        <label for="openai-key">OpenAI API key</label>
+        <input type="password" id="openai-key" autocomplete="off" placeholder="sk-…">
+        <p class="q-meta" id="key-status">Loading…</p>
+        <div class="inline-form">
+          <button type="submit">Save key</button>
+          <button type="button" class="secondary" id="remove-key-btn" hidden>Remove key</button>
+        </div>
+      </form>
+    </section>
+  </main>
+  <script src="{{ url_for('static', filename='js/settings.js') }}?v={{ app_version }}"></script>
+</body>
+</html>

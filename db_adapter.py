@@ -114,6 +114,34 @@ def _connect_postgres() -> _PgConnection:
     return _PgConnection(conn)
 
 
+def _rename_user_api_key_column_sqlite(db):
+    cols = {r[1] for r in db.execute("PRAGMA table_info(user_api_keys)").fetchall()}
+    if "openrouter_api_key_enc" in cols and "openai_api_key_enc" not in cols:
+        db.execute(
+            "ALTER TABLE user_api_keys RENAME COLUMN openrouter_api_key_enc TO openai_api_key_enc"
+        )
+        db.commit()
+
+
+def _rename_user_api_key_column_postgres(db):
+    row = db.execute(
+        """SELECT 1 FROM information_schema.columns
+           WHERE table_schema = 'public' AND table_name = 'user_api_keys'
+             AND column_name = 'openrouter_api_key_enc'"""
+    ).fetchone()
+    if row:
+        has_new = db.execute(
+            """SELECT 1 FROM information_schema.columns
+               WHERE table_schema = 'public' AND table_name = 'user_api_keys'
+                 AND column_name = 'openai_api_key_enc'"""
+        ).fetchone()
+        if not has_new:
+            db.execute(
+                "ALTER TABLE user_api_keys RENAME COLUMN openrouter_api_key_enc TO openai_api_key_enc"
+            )
+            db.commit()
+
+
 def _migrate_sqlite(db):
     def add_col(table, col, typedef):
         cols = {r[1] for r in db.execute(f"PRAGMA table_info({table})").fetchall()}
@@ -133,6 +161,32 @@ def _migrate_sqlite(db):
     db.execute("UPDATE questions SET is_private = 1 WHERE copied_from_id IS NOT NULL")
     db.commit()
     add_col("writings", "paragraph_stats", "TEXT")
+    db.commit()
+
+    db.execute(
+        """CREATE TABLE IF NOT EXISTS user_api_keys (
+            user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+            openai_api_key_enc TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )"""
+    )
+    _rename_user_api_key_column_sqlite(db)
+    db.execute(
+        """CREATE TABLE IF NOT EXISTS writing_evaluations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            writing_id INTEGER NOT NULL UNIQUE REFERENCES writings(id) ON DELETE CASCADE,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            band_score REAL NOT NULL,
+            criterion_scores_json TEXT NOT NULL,
+            overall_feedback TEXT NOT NULL,
+            mistakes_json TEXT NOT NULL,
+            areas_for_improvement_json TEXT NOT NULL,
+            rewritten_essay TEXT NOT NULL,
+            model TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )"""
+    )
     db.commit()
 
     db.execute(
@@ -183,6 +237,32 @@ def _migrate_postgres(db):
     db.execute("UPDATE questions SET is_private = 1 WHERE copied_from_id IS NOT NULL")
     db.commit()
     add_col("writings", "paragraph_stats", "TEXT")
+    db.commit()
+
+    db.execute(
+        """CREATE TABLE IF NOT EXISTS user_api_keys (
+            user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+            openai_api_key_enc TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )"""
+    )
+    _rename_user_api_key_column_postgres(db)
+    db.execute(
+        """CREATE TABLE IF NOT EXISTS writing_evaluations (
+            id SERIAL PRIMARY KEY,
+            writing_id INTEGER NOT NULL UNIQUE REFERENCES writings(id) ON DELETE CASCADE,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            band_score REAL NOT NULL,
+            criterion_scores_json TEXT NOT NULL,
+            overall_feedback TEXT NOT NULL,
+            mistakes_json TEXT NOT NULL,
+            areas_for_improvement_json TEXT NOT NULL,
+            rewritten_essay TEXT NOT NULL,
+            model TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )"""
+    )
     db.commit()
 
 

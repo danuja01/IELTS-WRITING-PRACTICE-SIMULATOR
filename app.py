@@ -29,7 +29,9 @@ from flask import (
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
+from ai_eval_util import DEFAULT_MODEL, evaluate_writing, evaluation_to_dict
 from backup import start_backup_scheduler
+from crypto_util import decrypt_secret, encrypt_secret, mask_api_key
 from db_adapter import connect_db, init_database, is_sqlite
 from mail_util import send_mail, smtp_configured
 
@@ -356,6 +358,43 @@ def _writing_json(row):
     return d
 
 
+def _get_user_openai_key(user_id: int) -> str:
+    row = get_db().execute(
+        "SELECT openai_api_key_enc FROM user_api_keys WHERE user_id = ?",
+        (user_id,),
+    ).fetchone()
+    if not row:
+        return ""
+    return decrypt_secret(row["openai_api_key_enc"])
+
+
+def _evaluation_json(row):
+    if not row:
+        return None
+    d = dict(row)
+    for field, key in (
+        ("criterion_scores_json", "criterion_scores"),
+        ("mistakes_json", "mistakes"),
+        ("areas_for_improvement_json", "areas_for_improvement"),
+    ):
+        raw = d.pop(field, None)
+        try:
+            d[key] = json.loads(raw) if isinstance(raw, str) else (raw or [])
+        except json.JSONDecodeError:
+            d[key] = [] if key != "criterion_scores" else {}
+    return d
+
+
+def _get_writing_for_eval(wid: int, user_id: int):
+    return get_db().execute(
+        """SELECT w.*, q.title AS question_title, q.task_type, q.prompt AS question_prompt
+           FROM writings w
+           LEFT JOIN questions q ON q.id = w.question_id
+           WHERE w.id = ? AND w.user_id = ? AND w.finished_at IS NOT NULL""",
+        (wid, user_id),
+    ).fetchone()
+
+
 def _set_session(user_row):
     user = _as_dict(user_row)
     session["user_id"] = user["id"]
@@ -490,7 +529,10 @@ def before_request():
                 return None
             if re.match(r"^/api/questions/\d+/image$", path) and request.method == "GET":
                 return None
-            student_paths = ("/home", "/practice", "/history", "/api/questions", "/api/writings", "/api/categories")
+            student_paths = (
+                "/home", "/practice", "/history", "/settings",
+                "/api/questions", "/api/writings", "/api/categories", "/api/settings",
+            )
             if any(path == p or path.startswith(p + "/") for p in student_paths):
                 if path.startswith("/api/"):
                     return jsonify({"error": "admin panel only"}), 403
@@ -882,6 +924,12 @@ def history_question_page(question_id):
 @student_required
 def history_writing_page(writing_id):
     return render_template("history_writing.html", writing_id=writing_id)
+
+
+@app.route("/settings")
+@student_required
+def settings_page():
+    return render_template("settings.html", username=session.get("username", ""))
 
 
 # --- Admin pages ---
@@ -1398,6 +1446,179 @@ def save_writing():
     db.commit()
     out = db.execute("SELECT * FROM writings WHERE id = ?", (cur.lastrowid,)).fetchone()
     return jsonify(_writing_json(out)), 201
+
+
+# --- AI settings & evaluation ---
+
+
+@app.route("/api/settings/ai", methods=["GET"])
+@student_required
+def get_ai_settings():
+    row = get_db().execute(
+        "SELECT openai_api_key_enc, updated_at FROM user_api_keys WHERE user_id = ?",
+        (session["user_id"],),
+    ).fetchone()
+    if not row:
+        return jsonify({"configured": False, "masked_key": "", "updated_at": None})
+    plain = decrypt_secret(row["openai_api_key_enc"])
+    return jsonify({
+        "configured": bool(plain),
+        "masked_key": mask_api_key(plain),
+        "updated_at": row["updated_at"],
+    })
+
+
+@app.route("/api/settings/ai", methods=["PUT"])
+@student_required
+def save_ai_settings():
+    data = request.get_json(silent=True) or {}
+    api_key = (data.get("openai_api_key") or "").strip()
+    if not api_key:
+        return jsonify({"error": "openai_api_key required"}), 400
+    ts = now_iso()
+    enc = encrypt_secret(api_key)
+    db = get_db()
+    existing = db.execute(
+        "SELECT user_id FROM user_api_keys WHERE user_id = ?",
+        (session["user_id"],),
+    ).fetchone()
+    if existing:
+        db.execute(
+            "UPDATE user_api_keys SET openai_api_key_enc = ?, updated_at = ? WHERE user_id = ?",
+            (enc, ts, session["user_id"]),
+        )
+    else:
+        db.execute(
+            "INSERT INTO user_api_keys (user_id, openai_api_key_enc, updated_at) VALUES (?, ?, ?)",
+            (session["user_id"], enc, ts),
+        )
+    db.commit()
+    return jsonify({
+        "ok": True,
+        "configured": True,
+        "masked_key": mask_api_key(api_key),
+        "updated_at": ts,
+    })
+
+
+@app.route("/api/settings/ai", methods=["DELETE"])
+@student_required
+def delete_ai_settings():
+    get_db().execute("DELETE FROM user_api_keys WHERE user_id = ?", (session["user_id"],))
+    get_db().commit()
+    return jsonify({"ok": True, "configured": False})
+
+
+@app.route("/api/writings/<int:wid>/evaluation", methods=["GET"])
+@login_required
+def get_writing_evaluation(wid):
+    db = get_db()
+    if session.get("is_admin"):
+        writing = db.execute("SELECT user_id FROM writings WHERE id = ?", (wid,)).fetchone()
+        if not writing:
+            return jsonify({"error": "not found"}), 404
+        owner_id = writing["user_id"]
+    else:
+        writing = db.execute(
+            "SELECT id FROM writings WHERE id = ? AND user_id = ?",
+            (wid, session["user_id"]),
+        ).fetchone()
+        if not writing:
+            return jsonify({"error": "not found"}), 404
+        owner_id = session["user_id"]
+
+    row = db.execute(
+        "SELECT * FROM writing_evaluations WHERE writing_id = ? AND user_id = ?",
+        (wid, owner_id),
+    ).fetchone()
+    if not row:
+        return jsonify(None)
+    return jsonify(_evaluation_json(row))
+
+
+@app.route("/api/writings/<int:wid>/evaluate", methods=["POST"])
+@student_required
+def evaluate_writing_attempt(wid):
+    row = _get_writing_for_eval(wid, session["user_id"])
+    if not row:
+        return jsonify({"error": "not found or attempt not finished"}), 404
+
+    api_key = _get_user_openai_key(session["user_id"])
+    if not api_key:
+        return jsonify({
+            "error": "OpenAI API key not configured",
+            "settings_url": url_for("settings_page"),
+        }), 400
+
+    model = DEFAULT_MODEL
+    try:
+        result = evaluate_writing(
+            api_key=api_key,
+            task_type=row["task_type"] or "task2",
+            question_title=row["question_title"] or "",
+            question_prompt=row["question_prompt"] or "",
+            essay=row["content"] or "",
+            word_count=row["final_words"],
+            elapsed_ms=row["elapsed_ms"],
+            model=model,
+        )
+    except Exception as exc:
+        app.logger.exception("AI evaluation failed for writing %s", wid)
+        return jsonify({"error": f"Evaluation failed: {exc}"}), 502
+
+    payload = evaluation_to_dict(result, model=model)
+    ts = now_iso()
+    db = get_db()
+    existing = db.execute(
+        "SELECT id FROM writing_evaluations WHERE writing_id = ?",
+        (wid,),
+    ).fetchone()
+    if existing:
+        db.execute(
+            """UPDATE writing_evaluations SET
+               band_score = ?, criterion_scores_json = ?, overall_feedback = ?,
+               mistakes_json = ?, areas_for_improvement_json = ?, rewritten_essay = ?,
+               model = ?, updated_at = ?
+               WHERE writing_id = ?""",
+            (
+                payload["band_score"],
+                json.dumps(payload["criterion_scores"]),
+                payload["overall_feedback"],
+                json.dumps(payload["mistakes"]),
+                json.dumps(payload["areas_for_improvement"]),
+                payload["rewritten_essay"],
+                payload["model"],
+                ts,
+                wid,
+            ),
+        )
+    else:
+        db.execute(
+            """INSERT INTO writing_evaluations
+               (writing_id, user_id, band_score, criterion_scores_json, overall_feedback,
+                mistakes_json, areas_for_improvement_json, rewritten_essay, model,
+                created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                wid,
+                session["user_id"],
+                payload["band_score"],
+                json.dumps(payload["criterion_scores"]),
+                payload["overall_feedback"],
+                json.dumps(payload["mistakes"]),
+                json.dumps(payload["areas_for_improvement"]),
+                payload["rewritten_essay"],
+                payload["model"],
+                ts,
+                ts,
+            ),
+        )
+    db.commit()
+    saved = db.execute(
+        "SELECT * FROM writing_evaluations WHERE writing_id = ?",
+        (wid,),
+    ).fetchone()
+    return jsonify(_evaluation_json(saved))
 
 
 # --- Admin API ---
