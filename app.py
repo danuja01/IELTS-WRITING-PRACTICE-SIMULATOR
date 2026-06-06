@@ -1,6 +1,7 @@
 """IELTS Writing Practice - Flask + SQLite."""
 import json
 import os
+import queue
 import re
 import secrets
 import shutil
@@ -32,7 +33,7 @@ from flask import (
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
-from ai_eval_util import DEFAULT_MODEL, evaluate_writing, evaluation_to_dict
+from ai_eval_util import DEFAULT_MODEL, REWRITE_MODEL, evaluate_writing, evaluation_to_dict
 from backup import start_backup_scheduler
 from crypto_util import decrypt_secret, encrypt_secret, mask_api_key
 from db_adapter import connect_db, init_database, is_sqlite
@@ -1597,21 +1598,20 @@ def _sse_event(payload: dict) -> str:
     return f"data: {json.dumps(payload)}\n\n"
 
 
-_EVAL_PROGRESS_STAGES = (
-    (8, "Preparing evaluation…"),
-    (18, "Reading essay against IELTS criteria…"),
-    (32, "Scoring band criteria…"),
-    (48, "Finding grammar and spelling errors…"),
-    (62, "Identifying vocabulary and phrasing issues…"),
-    (76, "Checking cohesion and sentence structure…"),
-    (88, "Generating Band 7.5+ rewrite…"),
-)
+def _eval_model_label() -> str:
+    if REWRITE_MODEL and REWRITE_MODEL != DEFAULT_MODEL:
+        return f"{DEFAULT_MODEL}+{REWRITE_MODEL}"
+    return DEFAULT_MODEL
 
 
 def _evaluate_stream(wid: int, user_id: int, row, api_key: str):
     holder: dict = {}
     error_holder: dict = {}
-    model = DEFAULT_MODEL
+    model_label = _eval_model_label()
+    progress_queue: queue.Queue = queue.Queue()
+
+    def _on_progress(percent: int, message: str):
+        progress_queue.put({"type": "progress", "percent": percent, "message": message})
 
     def _run():
         try:
@@ -1624,34 +1624,30 @@ def _evaluate_stream(wid: int, user_id: int, row, api_key: str):
                     essay=row["content"] or "",
                     word_count=row["final_words"],
                     elapsed_ms=row["elapsed_ms"],
-                    model=model,
+                    model=DEFAULT_MODEL,
+                    on_progress=_on_progress,
                 )
-                payload = evaluation_to_dict(result, model=model)
-                saved = _save_evaluation(wid, user_id, payload, model)
+                payload = evaluation_to_dict(result, model=model_label)
+                saved = _save_evaluation(wid, user_id, payload, model_label)
                 holder["evaluation"] = _evaluation_json(saved)
         except Exception as exc:
             app.logger.exception("AI evaluation failed for writing %s", wid)
             error_holder["error"] = str(exc)
+        finally:
+            progress_queue.put(None)
 
     thread = threading.Thread(target=_run, daemon=True)
     thread.start()
 
-    stage_idx = 0
-    while thread.is_alive():
-        if stage_idx < len(_EVAL_PROGRESS_STAGES):
-            percent, message = _EVAL_PROGRESS_STAGES[stage_idx]
-            yield _sse_event({"type": "progress", "percent": percent, "message": message})
-            stage_idx += 1
-        else:
-            yield _sse_event({
-                "type": "progress",
-                "percent": 92,
-                "message": "Finalising evaluation…",
-            })
-        for _ in range(6):
-            if not thread.is_alive():
-                break
-            time.sleep(0.5)
+    yield _sse_event({"type": "progress", "percent": 5, "message": "Starting evaluation…"})
+    while thread.is_alive() or not progress_queue.empty():
+        try:
+            item = progress_queue.get(timeout=0.4)
+        except queue.Empty:
+            continue
+        if item is None:
+            break
+        yield _sse_event(item)
 
     thread.join()
     if error_holder.get("error"):
@@ -1689,7 +1685,7 @@ def evaluate_writing_attempt(wid):
             },
         )
 
-    model = DEFAULT_MODEL
+    model_label = _eval_model_label()
     try:
         result = evaluate_writing(
             api_key=api_key,
@@ -1699,14 +1695,14 @@ def evaluate_writing_attempt(wid):
             essay=row["content"] or "",
             word_count=row["final_words"],
             elapsed_ms=row["elapsed_ms"],
-            model=model,
+            model=DEFAULT_MODEL,
         )
     except Exception as exc:
         app.logger.exception("AI evaluation failed for writing %s", wid)
         return jsonify({"error": f"Evaluation failed: {exc}"}), 502
 
-    payload = evaluation_to_dict(result, model=model)
-    saved = _save_evaluation(wid, session["user_id"], payload, model)
+    payload = evaluation_to_dict(result, model=model_label)
+    saved = _save_evaluation(wid, session["user_id"], payload, model_label)
     return jsonify(_evaluation_json(saved))
 
 
