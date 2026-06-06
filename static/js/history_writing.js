@@ -130,8 +130,8 @@
         <ul class="eval-improve-list">${improvements}</ul>
       </section>
       <section class="eval-section">
-        <h4>Band 7.5+ rewrite</h4>
-        <p class="q-meta eval-rewrite-legend"><span class="eval-highlight-inline">Green bold</span> = improved words &amp; phrases</p>
+        <h4>Band 7.5+ ${(taskType || "task2") === "task1" ? "model report" : "rewrite"}</h4>
+        <p class="q-meta eval-rewrite-legend"><span class="eval-highlight-inline">Green bold</span> = improved words &amp; phrases${(taskType || "task2") === "task1" ? " · Task 1: intro, overview, 2 body paragraphs (no conclusion)" : ""}</p>
         <div class="essay-readonly eval-rewrite">${renderRewrite(evalData.rewritten_essay)}</div>
       </section>
       <p class="q-meta eval-meta">Generated ${esc(evalData.updated_at || evalData.created_at || "")}${evalData.model ? ` · ${esc(evalData.model)}` : ""}</p>`;
