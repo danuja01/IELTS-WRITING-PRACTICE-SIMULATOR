@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sub-admin - Admin</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <header class="topbar topbar-admin">
+    <h1>Sub-admin permissions</h1>
+    <a href="{{ url_for('admin_home') }}" class="btn secondary">← Users</a>
+    <button type="button" class="secondary" id="logout-btn">Logout</button>
+  </header>
+  <main class="home-main">
+    <section class="panel" id="sub-admin-panel"><p class="q-meta">Loading…</p></section>
+  </main>
+  <script>window.SUB_ADMIN_USER_ID = {{ user_id }};</script>
+  <script src="{{ url_for('static', filename='js/admin_sub_admin.js') }}?v={{ app_version }}"></script>
+</body>
+</html>
