@@ -282,6 +282,11 @@ def _make_client(api_key: str):
     )
 
 
+def _completion_limit(limit: int) -> dict:
+    """Newer OpenAI models (e.g. gpt-5.x) require max_completion_tokens, not max_tokens."""
+    return {"max_completion_tokens": limit}
+
+
 def _run_analysis(
     client,
     *,
@@ -310,7 +315,7 @@ def _run_analysis(
             },
         ],
         response_model=WritingEvaluationAnalysis,
-        max_tokens=ANALYSIS_MAX_TOKENS,
+        **_completion_limit(ANALYSIS_MAX_TOKENS),
     )
 
 
@@ -342,7 +347,7 @@ def _run_rewrite(
             },
         ],
         response_model=WritingRewriteResult,
-        max_tokens=REWRITE_MAX_TOKENS,
+        **_completion_limit(REWRITE_MAX_TOKENS),
     )
     rewrite = _clean_rewrite(result.rewritten_essay)
     if _looks_truncated(rewrite):
@@ -395,7 +400,7 @@ def _continue_rewrite(
             },
         ],
         response_model=WritingRewriteResult,
-        max_tokens=REWRITE_MAX_TOKENS,
+        **_completion_limit(REWRITE_MAX_TOKENS),
     )
     extra = _clean_rewrite(continuation.rewritten_essay)
     if extra.startswith(partial[-80:].strip()):
