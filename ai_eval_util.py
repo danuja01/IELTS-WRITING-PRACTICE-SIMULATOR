@@ -1,11 +1,13 @@
 """Lightweight RAG + OpenAI evaluation for IELTS writing attempts."""
 from __future__ import annotations
 
+import base64
 import math
+import mimetypes
 import os
 import re
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable
 
 import instructor
 from openai import OpenAI
@@ -17,10 +19,11 @@ DEFAULT_MODEL = os.environ.get("OPENAI_EVAL_MODEL", "gpt-4o-mini")
 REWRITE_MODEL = os.environ.get("OPENAI_REWRITE_MODEL", DEFAULT_MODEL)
 ANALYSIS_MAX_TOKENS = int(os.environ.get("OPENAI_ANALYSIS_MAX_TOKENS", "16384"))
 REWRITE_MAX_TOKENS = int(os.environ.get("OPENAI_REWRITE_MAX_TOKENS", "16384"))
+EVAL_TEMPERATURE = float(os.environ.get("OPENAI_EVAL_TEMPERATURE", "0.3"))
 
 ProgressCallback = Callable[[int, str], None] | None
 
-MISTAKE_CATEGORIES = (
+MISTAKE_CATEGORIES_TASK2 = (
     "Grammar",
     "Spelling",
     "Vocabulary",
@@ -32,6 +35,27 @@ MISTAKE_CATEGORIES = (
     "Task response",
     "Other",
 )
+
+MISTAKE_CATEGORIES_TASK1 = (
+    "Grammar",
+    "Spelling",
+    "Vocabulary",
+    "Word choice",
+    "Sentence structure",
+    "Awkward phrasing",
+    "Cohesion",
+    "Punctuation",
+    "Task achievement",
+    "Data accuracy",
+    "Overview",
+    "Other",
+)
+
+
+class ChartImage:
+    def __init__(self, *, b64: str, media_type: str):
+        self.b64 = b64
+        self.media_type = media_type
 
 
 class CriterionScores(BaseModel):
@@ -123,21 +147,61 @@ def retrieve_rag_context(task_type: str) -> str:
     task = (task_type or "task2").lower()
     chunks = [_read_rag_file("evaluation_guide.md")]
     if task == "task1":
+        chunks.append(_read_rag_file("task1_structure.md"))
         chunks.append(_read_rag_file("task1_criteria.md"))
     else:
         chunks.append(_read_rag_file("task2_criteria.md"))
     return "\n\n---\n\n".join(c for c in chunks if c)
 
 
+def _is_task1(task_type: str) -> bool:
+    return (task_type or "task2").lower() == "task1"
+
+
 def _task_label(task_type: str) -> str:
-    return "IELTS Academic Writing Task 1" if (task_type or "").lower() == "task1" else "IELTS Academic Writing Task 2"
+    return "IELTS Academic Writing Task 1" if _is_task1(task_type) else "IELTS Academic Writing Task 2"
+
+
+def _mistake_categories(task_type: str) -> str:
+    cats = MISTAKE_CATEGORIES_TASK1 if _is_task1(task_type) else MISTAKE_CATEGORIES_TASK2
+    return ", ".join(cats)
 
 
 def _target_word_count(task_type: str, word_count: int | None) -> int:
-    task = (task_type or "task2").lower()
-    minimum = 170 if task == "task1" else 280
-    original = word_count or minimum
-    return max(minimum, original, int(original * 1.05))
+    if _is_task1(task_type):
+        original = word_count or 150
+        return min(180, max(150, original))
+    original = word_count or 280
+    return max(280, original, int(original * 1.05))
+
+
+def _chart_image_from_path(image_path: str | None, upload_root: str | None) -> ChartImage | None:
+    if not image_path or not upload_root:
+        return None
+    rel = os.path.normpath(image_path)
+    if rel.startswith("..") or os.path.isabs(rel):
+        return None
+    full = os.path.abspath(os.path.join(upload_root, rel))
+    root = os.path.abspath(upload_root)
+    if full != root and not full.startswith(root + os.sep):
+        return None
+    if not os.path.isfile(full):
+        return None
+    media_type = mimetypes.guess_type(full)[0] or "image/png"
+    with open(full, "rb") as fh:
+        return ChartImage(b64=base64.standard_b64encode(fh.read()).decode("ascii"), media_type=media_type)
+
+
+def _user_message_content(text: str, chart: ChartImage | None) -> str | list[dict[str, Any]]:
+    if not chart:
+        return text
+    return [
+        {"type": "text", "text": text},
+        {
+            "type": "image_url",
+            "image_url": {"url": f"data:{chart.media_type};base64,{chart.b64}"},
+        },
+    ]
 
 
 def _clean_rewrite(text: str) -> str:
@@ -159,80 +223,87 @@ def _round_band_average(scores: CriterionScores) -> float:
     return math.floor(avg * 2 + 0.5) / 2
 
 
-def _analysis_system_prompt(task_type: str) -> str:
+def _analysis_system_prompt(task_type: str, *, has_chart: bool) -> str:
     rag = retrieve_rag_context(task_type)
-    task_criterion = "Task Achievement" if (task_type or "").lower() == "task1" else "Task Response"
-    categories = ", ".join(MISTAKE_CATEGORIES)
-    return f"""You are an experienced IELTS Writing tutor scoring essays the same way ChatGPT does in a standard IELTS evaluation — balanced, fair, and not overly strict.
+    categories = _mistake_categories(task_type)
+    if _is_task1(task_type):
+        chart_note = (
+            "A chart/diagram image is attached. Study it carefully — score Task Achievement and Data accuracy against the actual visual data."
+            if has_chart
+            else "No chart image was provided; evaluate Task Achievement from the prompt and essay only."
+        )
+        return f"""You are an experienced IELTS Writing Task 1 examiner scoring a **report** (NOT an essay).
 
-Evaluate using official IELTS band descriptors and the reference material below.
-Apply the four criteria ({task_criterion}, Coherence and Cohesion, Lexical Resource, Grammatical Range and Accuracy).
+This is IELTS Academic Writing Task 1 — a data description task. There is NO personal opinion and NO conclusion paragraph.
 
-Reference material (RAG context):
+{chart_note}
+
+Apply the four criteria: Task Achievement, Coherence and Cohesion, Lexical Resource, Grammatical Range and Accuracy.
+
+Reference material:
 {rag}
 
-SCORING RULES (score FIRST, then list mistakes separately):
+SCORING RULES (score FIRST, mistakes SECOND):
 
-**Step 1 — Overall impression:** Read the full essay. Judge communicative success before counting errors.
+• **Task Achievement:** Does the report have (1) intro paraphrasing the task, (2) a clear overview of main trends, (3) selected key features with accurate data? Score fairly like ChatGPT — reward a clear overview and relevant data selection.
 
-**Step 2 — Per-criterion bands (use the calibration anchor in the reference material):**
+• **Coherence & Cohesion:** Task 1 structure = intro → overview → body 1 → body 2. Score **6.0–6.5** if this 4-part report structure is present. No conclusion is expected or required.
 
-• **{task_criterion}:** If the essay fully answers all parts of the prompt with a clear opinion/position and relevant ideas, score **6.5–7.0** even when language is weak. Only score below 6 if parts of the prompt are missed or the position is unclear.
+• **Lexical Resource:** Academic data language (increased, declined, peaked, accounted for). Score **6.0** if range is adequate even with spelling errors.
 
-• **Coherence & Cohesion:** If there is a clear essay structure (introduction, body paragraphs, conclusion) with logical flow, score **6.0–6.5** even when linking phrases are awkward. Reserve Band 5 for disorganised or hard-to-follow writing.
+• **Grammatical Range & Accuracy:** Score **5.5–6.0** if complex sentences are attempted and meaning is clear.
 
-• **Lexical Resource:** If the writer shows adequate-to-good vocabulary range and attempts less common words, score **6.0** even with frequent spelling mistakes. Spelling errors reduce the score but do not automatically make it Band 5.
+**Critical:** Do NOT apply Task 2 essay standards (no thesis, no opinion, no conclusion expected).
 
-• **Grammatical Range & Accuracy:** If the writer attempts complex sentences and meaning remains clear despite grammar/article/verb errors, score **5.5–6.0**. Reserve Band 5 for errors that frequently impede understanding.
+MISTAKE LISTING: Include data accuracy errors, missing overview, wrong figures, and language errors. Categories: {categories}.
 
-**Step 3 — Overall band:** Average of the four criteria, rounded to nearest 0.5.
+Do NOT rewrite the report."""
 
-**Critical:** Your band scores must match what a ChatGPT IELTS tutor would predict. Do NOT be stricter than ChatGPT. The mistake list is for teaching — it must NOT pull criterion scores down.
+    return f"""You are an experienced IELTS Writing Task 2 tutor scoring an **essay** — balanced, fair, like ChatGPT.
 
-MISTAKE LISTING (after scoring — for student feedback only):
-- List every error: grammar, spelling, vocabulary, awkward phrasing, cohesion, punctuation.
-- Each mistake: wrong_text, corrected_text, category ({categories}), issue, suggestion.
+Apply: Task Response, Coherence and Cohesion, Lexical Resource, Grammatical Range and Accuracy.
 
-Do NOT write a rewritten essay in this response — scoring and mistakes only."""
+Reference material:
+{rag}
+
+SCORING RULES (score FIRST, mistakes SECOND):
+
+• **Task Response:** Clear position + all parts answered → **6.5–7.0** even if language is weak.
+• **Coherence & Cohesion:** Clear essay structure (intro, body, conclusion) → **6.0–6.5**.
+• **Lexical Resource:** Adequate range → **6.0** even with spelling errors.
+• **Grammatical Range:** Complex attempts + clear meaning → **5.5–6.0**.
+
+Do NOT be stricter than ChatGPT. Mistakes are for feedback only — categories: {categories}.
+
+Do NOT rewrite the essay."""
 
 
 def _rewrite_system_prompt(task_type: str) -> str:
-    task = (task_type or "task2").lower()
-    if task == "task1":
-        structure = (
-            "Introduction paraphrasing the task, clear overview sentence, "
-            "body paragraphs with accurate data comparisons, formal academic tone."
-        )
-    else:
-        structure = (
-            "Introduction with clear thesis, two or three fully developed body paragraphs "
-            "with examples/explanation, and a conclusion that summarises the position."
-        )
-    return f"""You are an expert IELTS Writing coach who produces authentic Band 7.5–8.0 model answers.
+    if _is_task1(task_type):
+        return """You are an expert IELTS Task 1 coach writing a Band 7.5+ **report** (NOT an essay).
 
-Your ONLY job is to write a COMPLETE rewritten essay. Requirements:
+STRUCTURE (exactly 4 paragraphs — NO conclusion):
+1. **Introduction:** Paraphrase the task title only (1–2 sentences). No data. No overview here.
+2. **Overview:** Main trends/differences at a glance (2–3 sentences). No specific figures.
+3. **Body 1:** One group of key features with accurate data and comparisons from the chart.
+4. **Body 2:** Remaining key features with accurate data and comparisons.
 
-COMPLETENESS (CRITICAL):
-- Write the ENTIRE essay from the opening sentence to the final concluding sentence.
-- Never stop mid-paragraph, mid-sentence, or mid-thought.
-- Cover every idea from the student's original essay and develop each one further.
-- Meet or exceed the minimum word count given in the user message.
+CRITICAL RULES:
+- Read data from the chart image provided — never invent figures.
+- **NO conclusion paragraph. NO personal opinion.**
+- Target length: **150–180 words** total. Be concise.
+- Wrap improved words/phrases in <<double angle brackets>>.
+- Plain text, blank lines between paragraphs. No HTML tags."""
 
-Band 7.5+ quality:
-- {structure}
-- Varied sentence structures: mix simple, compound, and complex sentences.
-- Less common vocabulary and strong collocations used naturally.
-- Clear cohesive devices (however, furthermore, consequently, in contrast).
-- Formal academic register; no contractions or informal phrases.
-- Fully address every part of the question prompt.
+    return """You are an expert IELTS Task 2 coach writing a Band 7.5+ **essay**.
 
-Highlighting:
-- Wrap EVERY improved word or phrase in double angle brackets: <<like this>>
-- Highlight grammar fixes, stronger vocabulary, and upgraded collocations.
+STRUCTURE: Introduction with thesis → 2–3 developed body paragraphs → conclusion summarising your position.
 
-Format:
-- Plain text only. Use blank lines between paragraphs.
-- NO HTML tags (no <br>, <p>, etc.)."""
+RULES:
+- Write the COMPLETE essay through the conclusion.
+- Target length per user message (typically 280+ words).
+- Wrap improved words/phrases in <<double angle brackets>>.
+- Plain text, blank lines between paragraphs. No HTML tags."""
 
 
 def _analysis_user_prompt(
@@ -243,27 +314,35 @@ def _analysis_user_prompt(
     essay: str,
     word_count: int | None,
     elapsed_minutes: float | None,
+    has_chart: bool = False,
 ) -> str:
     meta = []
     if word_count is not None:
         meta.append(f"Word count: {word_count}")
     if elapsed_minutes is not None:
         meta.append(f"Time spent: {elapsed_minutes:.1f} minutes")
+    if _is_task1(task_type):
+        meta.append("Expected structure: intro (paraphrase) → overview → body 1 → body 2 (NO conclusion)")
+        meta.append("Target length: 150–180 words")
     meta_block = "\n".join(meta) if meta else "Word count: unknown"
+    chart_line = (
+        "\nChart/diagram image is attached — evaluate Task Achievement and data accuracy against it.\n"
+        if has_chart and _is_task1(task_type)
+        else ""
+    )
 
     return f"""{_task_label(task_type)} evaluation request
 
 Question title: {question_title or "Untitled"}
 Question prompt:
-{question_prompt or "(not provided)"}
-
+{question_prompt or "(not provided)"}{chart_line}
 Attempt metadata:
 {meta_block}
 
-Student essay:
+Student {"report" if _is_task1(task_type) else "essay"}:
 {essay}
 
-Return band scores, overall feedback, every mistake, and improvement areas. Do not rewrite the essay."""
+Return band scores, overall feedback, every mistake, and improvement areas. Do not rewrite."""
 
 
 def _rewrite_user_prompt(
@@ -274,23 +353,39 @@ def _rewrite_user_prompt(
     essay: str,
     word_count: int | None,
     analysis: WritingEvaluationAnalysis,
+    has_chart: bool,
 ) -> str:
     target = _target_word_count(task_type, word_count)
     top_issues = "\n".join(f"- {m.category}: {m.issue}" for m in analysis.mistakes[:12])
     improvements = "\n".join(f"- {a}" for a in analysis.areas_for_improvement)
+    chart_note = (
+        "\nThe chart/diagram image is attached — use accurate figures from it.\n"
+        if has_chart and _is_task1(task_type)
+        else ""
+    )
+    length_line = (
+        f"Target length: {target} words maximum (Task 1: 150–180 words)."
+        if _is_task1(task_type)
+        else f"Target length: at least {target} words."
+    )
+    closing = (
+        "Write the COMPLETE improved report (4 paragraphs: intro, overview, body 1, body 2). "
+        "150–180 words. NO conclusion. Use chart data accurately."
+        if _is_task1(task_type)
+        else "Write the COMPLETE improved essay. Preserve the student's argument. Finish with a proper conclusion."
+    )
 
     return f"""{_task_label(task_type)} — write a complete Band 7.5+ model answer
 
 Question title: {question_title or "Untitled"}
 Question prompt:
-{question_prompt or "(not provided)"}
-
-Original student essay ({word_count or "unknown"} words):
+{question_prompt or "(not provided)"}{chart_note}
+Original student writing ({word_count or "unknown"} words):
 {essay}
 
-Target length: at least {target} words (do not write less).
+{length_line}
 
-Key issues to fix in your rewrite:
+Key issues to fix:
 {top_issues}
 
 Focus areas:
@@ -298,7 +393,7 @@ Focus areas:
 
 Examiner summary: {analysis.overall_feedback}
 
-Write the COMPLETE improved essay now. Preserve the student's core argument and ideas but upgrade every aspect to Band 7.5+ standard. Finish with a proper conclusion."""
+{closing}"""
 
 
 def _make_client(api_key: str):
@@ -308,9 +403,8 @@ def _make_client(api_key: str):
     )
 
 
-def _completion_limit(limit: int) -> dict:
-    """Newer OpenAI models (e.g. gpt-5.x) require max_completion_tokens, not max_tokens."""
-    return {"max_completion_tokens": limit}
+def _llm_kwargs(limit: int) -> dict:
+    return {"temperature": EVAL_TEMPERATURE, "max_completion_tokens": limit}
 
 
 def _run_analysis(
@@ -323,25 +417,25 @@ def _run_analysis(
     essay: str,
     word_count: int | None,
     elapsed_minutes: float | None,
+    chart: ChartImage | None = None,
 ) -> WritingEvaluationAnalysis:
+    user_text = _analysis_user_prompt(
+        task_type=task_type,
+        question_title=question_title,
+        question_prompt=question_prompt,
+        essay=essay,
+        word_count=word_count,
+        elapsed_minutes=elapsed_minutes,
+        has_chart=bool(chart),
+    )
     return client.chat.completions.create(
         model=model,
         messages=[
-            {"role": "system", "content": _analysis_system_prompt(task_type)},
-            {
-                "role": "user",
-                "content": _analysis_user_prompt(
-                    task_type=task_type,
-                    question_title=question_title,
-                    question_prompt=question_prompt,
-                    essay=essay,
-                    word_count=word_count,
-                    elapsed_minutes=elapsed_minutes,
-                ),
-            },
+            {"role": "system", "content": _analysis_system_prompt(task_type, has_chart=bool(chart))},
+            {"role": "user", "content": _user_message_content(user_text, chart)},
         ],
         response_model=WritingEvaluationAnalysis,
-        **_completion_limit(ANALYSIS_MAX_TOKENS),
+        **_llm_kwargs(ANALYSIS_MAX_TOKENS),
     )
 
 
@@ -355,25 +449,25 @@ def _run_rewrite(
     essay: str,
     word_count: int | None,
     analysis: WritingEvaluationAnalysis,
+    chart: ChartImage | None = None,
 ) -> str:
+    user_text = _rewrite_user_prompt(
+        task_type=task_type,
+        question_title=question_title,
+        question_prompt=question_prompt,
+        essay=essay,
+        word_count=word_count,
+        analysis=analysis,
+        has_chart=bool(chart),
+    )
     result: WritingRewriteResult = client.chat.completions.create(
         model=model,
         messages=[
             {"role": "system", "content": _rewrite_system_prompt(task_type)},
-            {
-                "role": "user",
-                "content": _rewrite_user_prompt(
-                    task_type=task_type,
-                    question_title=question_title,
-                    question_prompt=question_prompt,
-                    essay=essay,
-                    word_count=word_count,
-                    analysis=analysis,
-                ),
-            },
+            {"role": "user", "content": _user_message_content(user_text, chart)},
         ],
         response_model=WritingRewriteResult,
-        **_completion_limit(REWRITE_MAX_TOKENS),
+        **_llm_kwargs(REWRITE_MAX_TOKENS),
     )
     rewrite = _clean_rewrite(result.rewritten_essay)
     if _looks_truncated(rewrite):
@@ -384,6 +478,7 @@ def _run_rewrite(
             question_prompt=question_prompt,
             partial=rewrite,
             target_words=_target_word_count(task_type, word_count),
+            chart=chart,
         )
     return rewrite
 
@@ -408,25 +503,32 @@ def _continue_rewrite(
     question_prompt: str,
     partial: str,
     target_words: int,
+    chart: ChartImage | None = None,
 ) -> str:
+    if _is_task1(task_type):
+        finish_instruction = (
+            "Continue EXACTLY where it stopped and complete the report (4 paragraphs total). "
+            "NO conclusion. Target 150–180 words. Use chart data accurately."
+        )
+    else:
+        finish_instruction = (
+            f"Continue EXACTLY where it stopped and complete the essay through a proper conclusion. "
+            f"Target at least {target_words} words."
+        )
+    user_text = (
+        f"The following Band 7.5+ rewrite was cut off. {finish_instruction} "
+        f"Use <<>> for improvements. Plain text only.\n\n"
+        f"Question prompt:\n{question_prompt or '(not provided)'}\n\n"
+        f"Partial rewrite so far:\n{partial}"
+    )
     continuation: WritingRewriteResult = client.chat.completions.create(
         model=model,
         messages=[
             {"role": "system", "content": _rewrite_system_prompt(task_type)},
-            {
-                "role": "user",
-                "content": (
-                    f"The following Band 7.5+ rewrite was cut off before it finished. "
-                    f"Continue EXACTLY where it stopped and complete the essay through a proper conclusion. "
-                    f"Target total length: at least {target_words} words. "
-                    f"Use <<>> for any new improvements. Plain text only, no HTML.\n\n"
-                    f"Question prompt:\n{question_prompt or '(not provided)'}\n\n"
-                    f"Partial rewrite so far:\n{partial}"
-                ),
-            },
+            {"role": "user", "content": _user_message_content(user_text, chart)},
         ],
         response_model=WritingRewriteResult,
-        **_completion_limit(REWRITE_MAX_TOKENS),
+        **_llm_kwargs(REWRITE_MAX_TOKENS),
     )
     extra = _clean_rewrite(continuation.rewritten_essay)
     if extra.startswith(partial[-80:].strip()):
@@ -445,6 +547,8 @@ def evaluate_writing(
     elapsed_ms: int | None = None,
     model: str | None = None,
     on_progress: ProgressCallback = None,
+    chart_image_path: str | None = None,
+    upload_root: str | None = None,
 ) -> WritingEvaluationResult:
     if not api_key:
         raise ValueError("OpenAI API key is not configured")
@@ -455,9 +559,13 @@ def evaluate_writing(
     analysis_model = model or DEFAULT_MODEL
     rewrite_model = REWRITE_MODEL if REWRITE_MODEL != DEFAULT_MODEL else analysis_model
     client = _make_client(api_key)
+    chart = None
+    if _is_task1(task_type) and chart_image_path and upload_root:
+        chart = _chart_image_from_path(chart_image_path, upload_root)
 
     if on_progress:
-        on_progress(15, "Analyzing essay and finding all mistakes…")
+        msg = "Analyzing chart and report…" if _is_task1(task_type) else "Analyzing essay and finding all mistakes…"
+        on_progress(15, msg)
     analysis = _run_analysis(
         client,
         model=analysis_model,
@@ -467,11 +575,13 @@ def evaluate_writing(
         essay=essay,
         word_count=word_count,
         elapsed_minutes=elapsed_minutes,
+        chart=chart,
     )
     analysis.band_score = _round_band_average(analysis.criterion_scores)
 
     if on_progress:
-        on_progress(70, "Writing complete Band 7.5+ version…")
+        msg = "Writing Band 7.5+ Task 1 model report…" if _is_task1(task_type) else "Writing complete Band 7.5+ version…"
+        on_progress(70, msg)
     rewritten_essay = _run_rewrite(
         client,
         model=rewrite_model,
@@ -481,6 +591,7 @@ def evaluate_writing(
         essay=essay,
         word_count=word_count,
         analysis=analysis,
+        chart=chart,
     )
 
     if on_progress:

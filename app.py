@@ -391,12 +391,26 @@ def _evaluation_json(row):
 
 def _get_writing_for_eval(wid: int, user_id: int):
     return get_db().execute(
-        """SELECT w.*, q.title AS question_title, q.task_type, q.prompt AS question_prompt
+        """SELECT w.*, q.title AS question_title, q.task_type, q.prompt AS question_prompt,
+                  q.image_path AS question_image_path
            FROM writings w
            LEFT JOIN questions q ON q.id = w.question_id
            WHERE w.id = ? AND w.user_id = ? AND w.finished_at IS NOT NULL""",
         (wid, user_id),
     ).fetchone()
+
+
+def _eval_call_kwargs(row) -> dict:
+    return {
+        "task_type": row["task_type"] or "task2",
+        "question_title": row["question_title"] or "",
+        "question_prompt": row["question_prompt"] or "",
+        "essay": row["content"] or "",
+        "word_count": row["final_words"],
+        "elapsed_ms": row["elapsed_ms"],
+        "chart_image_path": row["question_image_path"] if "question_image_path" in row.keys() else None,
+        "upload_root": UPLOAD_DIR,
+    }
 
 
 def _set_session(user_row):
@@ -1618,14 +1632,9 @@ def _evaluate_stream(wid: int, user_id: int, row, api_key: str):
             with app.app_context():
                 result = evaluate_writing(
                     api_key=api_key,
-                    task_type=row["task_type"] or "task2",
-                    question_title=row["question_title"] or "",
-                    question_prompt=row["question_prompt"] or "",
-                    essay=row["content"] or "",
-                    word_count=row["final_words"],
-                    elapsed_ms=row["elapsed_ms"],
                     model=DEFAULT_MODEL,
                     on_progress=_on_progress,
+                    **_eval_call_kwargs(row),
                 )
                 payload = evaluation_to_dict(result, model=model_label)
                 saved = _save_evaluation(wid, user_id, payload, model_label)
@@ -1689,13 +1698,8 @@ def evaluate_writing_attempt(wid):
     try:
         result = evaluate_writing(
             api_key=api_key,
-            task_type=row["task_type"] or "task2",
-            question_title=row["question_title"] or "",
-            question_prompt=row["question_prompt"] or "",
-            essay=row["content"] or "",
-            word_count=row["final_words"],
-            elapsed_ms=row["elapsed_ms"],
             model=DEFAULT_MODEL,
+            **_eval_call_kwargs(row),
         )
     except Exception as exc:
         app.logger.exception("AI evaluation failed for writing %s", wid)
