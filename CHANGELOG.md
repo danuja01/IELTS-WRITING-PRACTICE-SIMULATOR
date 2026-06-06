@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.0.0
+
+- **Sub-admin role**: view-only admin panel access for students’ questions and attempts; full admins grant optional capabilities (reset passwords, edit users, edit questions)
+- **Admin UI**: create sub-admins, manage per-user permissions, hide edit controls when not allowed
+- **Security**: hardened question image upload paths (path traversal); safer email validation; safer image preview on home page
+
 ## 3.0.1
 
 - **PostgreSQL**: translate `IFNULL` → `COALESCE` in queries (fixes `/api/questions` 500)
