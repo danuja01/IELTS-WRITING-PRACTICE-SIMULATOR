@@ -109,17 +109,51 @@ def init_db():
     init_database(DB_PATH)
 
 
+def _upload_root() -> str:
+    root = os.path.realpath(UPLOAD_DIR)
+    os.makedirs(root, exist_ok=True)
+    return root
+
+
+def _image_ext_from_filename(filename: str) -> str:
+    ext = Path(secure_filename(filename or "")).suffix.lower()
+    if ext not in ALLOWED_IMAGE_EXT:
+        raise ValueError("image must be PNG, JPG, WEBP, or GIF")
+    return ext
+
+
+def _question_image_rel(user_id: int, question_id: int, ext: str) -> str:
+    uid = int(user_id)
+    qid = int(question_id)
+    if uid < 1 or qid < 1:
+        raise ValueError("invalid id")
+    if ext not in ALLOWED_IMAGE_EXT:
+        raise ValueError("image must be PNG, JPG, WEBP, or GIF")
+    return f"{uid}/{qid}{ext}"
+
+
+def _resolve_upload_path(rel: str) -> str:
+    if not rel or os.path.isabs(rel):
+        raise ValueError("invalid path")
+    norm = os.path.normpath(rel)
+    if norm.startswith("..") or norm == ".":
+        raise ValueError("invalid path")
+    root = _upload_root()
+    dest = os.path.abspath(os.path.join(root, norm))
+    if dest != root and not dest.startswith(root + os.sep):
+        raise ValueError("invalid path")
+    return dest
+
+
 def _save_question_image(file_storage, user_id: int, question_id: int) -> str:
     if not file_storage or not file_storage.filename:
         return ""
-    ext = Path(secure_filename(file_storage.filename)).suffix.lower()
-    if ext not in ALLOWED_IMAGE_EXT:
-        raise ValueError("image must be PNG, JPG, WEBP, or GIF")
+    ext = _image_ext_from_filename(file_storage.filename)
     raw = file_storage.read()
     if len(raw) > MAX_IMAGE_BYTES:
         raise ValueError("image too large (max 8 MB)")
-    rel = f"{user_id}/{question_id}{ext}"
-    dest = os.path.join(UPLOAD_DIR, rel)
+    rel = _question_image_rel(user_id, question_id, ext)
+    dest = _resolve_upload_path(rel)
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     with open(dest, "wb") as f:
         f.write(raw)
@@ -129,14 +163,14 @@ def _save_question_image(file_storage, user_id: int, question_id: int) -> str:
 def _copy_question_image(source_rel, user_id: int, question_id: int) -> str:
     if not source_rel:
         return ""
-    src = os.path.join(UPLOAD_DIR, source_rel)
+    src = _resolve_upload_path(source_rel)
     if not os.path.isfile(src):
         return ""
     ext = Path(source_rel).suffix.lower()
     if ext not in ALLOWED_IMAGE_EXT:
         return ""
-    rel = f"{user_id}/{question_id}{ext}"
-    dest = os.path.join(UPLOAD_DIR, rel)
+    rel = _question_image_rel(user_id, question_id, ext)
+    dest = _resolve_upload_path(rel)
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     shutil.copy2(src, dest)
     return rel
@@ -145,7 +179,10 @@ def _copy_question_image(source_rel, user_id: int, question_id: int) -> str:
 def _delete_question_image(image_path):
     if not image_path:
         return
-    full = os.path.join(UPLOAD_DIR, image_path)
+    try:
+        full = _resolve_upload_path(image_path)
+    except ValueError:
+        return
     if os.path.isfile(full):
         os.remove(full)
 
@@ -1181,9 +1218,11 @@ def question_image(qid):
             abort(404)
     if not row or not row["image_path"]:
         abort(404)
-    parent = os.path.join(UPLOAD_DIR, os.path.dirname(row["image_path"]))
-    name = os.path.basename(row["image_path"])
-    return send_from_directory(parent, name)
+    try:
+        full = _resolve_upload_path(row["image_path"])
+    except ValueError:
+        abort(404)
+    return send_from_directory(os.path.dirname(full), os.path.basename(full))
 
 
 @app.route("/api/questions/<int:qid>", methods=["DELETE"])
