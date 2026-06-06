@@ -1,31 +1,187 @@
 # IELTS Academic Writing Task 1 — Required Structure
 
-Task 1 is a **report**, not an essay. There is **NO conclusion** and **NO personal opinion**.
+Task 1 is a report, NOT an essay.
 
-## Required 4-paragraph structure
+Do NOT include:
 
-1. **Introduction** (1–2 sentences): Paraphrase the task title/question only. Do not include data or an overview here.
-2. **Overview** (2–3 sentences): Summarise the main trends, differences, or stages at a glance. No specific figures.
-3. **Body paragraph 1**: Describe one logical group of data with specific figures, comparisons, and trends from the chart.
-4. **Body paragraph 2**: Describe the remaining key features with specific data and comparisons.
+- Personal opinions
+- Recommendations
+- Conclusions
 
-## Word count
+---
 
-- Minimum: 150 words (penalty below 150)
-- Target for a Band 7.5+ model answer: **150–180 words**
-- Do not write a long essay — Task 1 is concise factual reporting
+# Required 4-Paragraph Structure
 
-## Task Achievement scoring focus
+## Paragraph 1 — Introduction
 
-- Is there a clear overview (not mixed into the introduction)?
-- Are key features selected and highlighted (not every number listed)?
-- Is data from the chart accurate?
-- Are comparisons made between categories/time periods?
-- Is the format appropriate for a report (not an opinion essay)?
+Length:
+- 1–2 sentences
 
-## Model answer rules
+Requirements:
+- Paraphrase the task title/question only.
+- Do not include an overview.
+- Do not include figures.
+- Do not describe trends.
 
-- Read data from the chart/diagram image provided
-- Never invent figures not shown in the chart
-- Never add a concluding opinion paragraph
-- Use formal academic language for describing trends (increased, declined, fluctuated, remained stable)
+Purpose:
+- Introduce what the chart/map/process shows.
+
+---
+
+## Paragraph 2 — Overview
+
+Length:
+- 2–3 sentences
+
+Requirements:
+- Summarise the main trends, differences or stages.
+- Highlight the most important features.
+- No detailed figures unless absolutely necessary.
+- Must be a separate paragraph.
+
+Examples:
+
+Charts:
+- highest / lowest
+- increases / decreases
+- overall patterns
+
+Maps:
+- major developments
+- unchanged areas
+
+Processes:
+- number of stages
+- starting point
+- ending point
+
+---
+
+## Paragraph 3 — Body Paragraph 1
+
+Requirements:
+- Describe one logical group of information.
+- Include specific figures.
+- Include comparisons where relevant.
+- Use accurate data only.
+
+Examples:
+
+Charts:
+- highest categories
+- major increases
+
+Maps:
+- northern area
+- central area
+
+Processes:
+- first half of stages
+
+---
+
+## Paragraph 4 — Body Paragraph 2
+
+Requirements:
+- Describe remaining key features.
+- Include specific figures.
+- Make comparisons where appropriate.
+
+Examples:
+
+Charts:
+- lower figures
+- remaining categories
+
+Maps:
+- remaining areas
+- transport changes
+
+Processes:
+- final stages
+
+---
+
+# Word Count Guidance
+
+Minimum:
+- 150 words
+
+Recommended:
+
+Charts/Tables:
+- 160–190 words
+
+Maps:
+- 170–200 words
+
+Processes:
+- 160–190 words
+
+Avoid:
+
+- Under 150 words
+- Over 220 words
+
+Long answers often introduce:
+- unnecessary details
+- grammar mistakes
+- repetition
+
+---
+
+# Task Achievement Focus
+
+To achieve Band 7+:
+
+✓ Clear separate overview
+
+✓ Accurate data reporting
+
+✓ Appropriate comparisons
+
+✓ Selection of key features
+
+✓ Logical grouping of information
+
+✓ No invented data
+
+✓ No unsupported explanations
+
+✓ Formal academic language
+
+---
+
+# Language Expectations
+
+Use:
+
+- increased
+- decreased
+- rose
+- fell
+- fluctuated
+- remained stable
+- peaked
+- reached
+- stood at
+
+Avoid:
+
+- personal opinions
+- speculation
+- informal language
+
+Examples:
+
+❌ I think...
+
+❌ This happened because...
+
+❌ It is good that...
+
+✔ The figure increased steadily.
+
+✔ The area underwent significant development.
+
+✔ The process begins with...

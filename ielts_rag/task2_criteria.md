@@ -1,60 +1,296 @@
-# IELTS Academic Writing Task 2 — Public Band Descriptors
+# IELTS Academic Writing Task 2 — Evaluation Guide
 
-## Task Response (Task 2)
+## Scoring Method
 
-**Band 9:** Fully addresses all parts of the task; presents a fully developed position in answer to the question with relevant, fully extended and well supported ideas.
+IELTS Writing Task 2 is assessed using four criteria worth 25% each:
 
-**Band 8:** Sufficiently addresses all parts of the task; presents a well-developed response to the question with relevant, extended and supported ideas.
+1. Task Response
+2. Coherence and Cohesion
+3. Lexical Resource
+4. Grammatical Range and Accuracy
 
-**Band 7:** Addresses all parts of the task; presents a clear position throughout the response; presents, extends and supports main ideas, but there may be a tendency to over-generalise or lack focus.
+Overall Band Score:
 
-**Band 6:** Addresses all parts of the task although some parts may be more fully covered than others; presents a relevant position although conclusions may become unclear or repetitive.
+* Average the four criteria.
+* Round to the nearest 0.5 band.
 
-**Band 5:** Addresses the task only partially; expresses a position but development is not always clear; presents some main ideas but these are limited and not sufficiently developed.
+Example:
 
-**Band 4:** Responds to the task only in a minimal way or tangentially; position is unclear; main ideas difficult to identify.
+* TR: 7.0
+* CC: 6.5
+* LR: 6.0
+* GRA: 6.5
 
-## Coherence and Cohesion (Task 2)
+Average = 6.5
 
-**Band 9:** Uses cohesion in such a way that it attracts no attention; skilfully manages paragraphing.
+Final Overall Band = 6.5
 
-**Band 8:** Sequences information and ideas logically; manages all aspects of cohesion well; uses paragraphing sufficiently and appropriately.
+---
 
-**Band 7:** Logically organises information and ideas; clear progression throughout; uses a range of cohesive devices appropriately although there may be some under-/over-use; may have clear central topic within each paragraph.
+# Task Response
 
-**Band 6:** Arranges information and ideas coherently; overall progression; uses cohesive devices effectively, but cohesion within and/or between sentences may be faulty or mechanical; uses referencing though not always clearly or appropriately.
+## Band 9
 
-**Band 5:** Presents information with some organisation but there may be a lack of overall progression; makes inadequate, inaccurate or over-use of cohesive devices; may be repetitive because of lack of referencing and substitution.
+* Fully addresses all parts of the task.
+* Position is fully developed and maintained throughout.
+* Ideas are relevant, extended and well-supported.
 
-## Lexical Resource (Task 2)
+## Band 8
 
-**Band 9:** Uses a wide range of vocabulary with very natural and sophisticated control of lexical features; rare minor errors occur only as slips.
+* Sufficiently addresses all parts.
+* Position is clear and well-developed.
+* Main ideas are relevant and supported with explanations and examples.
 
-**Band 8:** Uses a wide range of vocabulary fluently and flexibly to convey precise meanings; skilfully uses uncommon lexical items; rare errors in spelling/word formation.
+## Band 7
 
-**Band 7:** Uses vocabulary resource flexibly to discuss a variety of topics; uses some less common and idiomatic items; shows awareness of style and collocation, though inappropriacies occur.
+* Addresses all parts of the task.
+* Clear position throughout.
+* Main ideas are presented, extended and supported.
+* Some ideas may be overgeneralised or slightly underdeveloped.
 
-**Band 6:** Uses an adequate range of vocabulary for the task; attempts to use less common vocabulary but with some inaccuracy; makes some errors in spelling/word formation but they do not impede communication.
+## Band 6
 
-**Band 5:** Uses a limited range of vocabulary, but minimally adequate for the task; may make noticeable errors in spelling/word formation that may cause difficulty for the reader.
+* Addresses all parts, although some may be covered more fully than others.
+* Position is relevant but may become unclear or repetitive.
+* Ideas are relevant but support may be uneven.
 
-## Grammatical Range and Accuracy (Task 2)
+## Band 5
 
-**Band 9:** Uses a wide range of structures with full flexibility and accuracy; rare minor errors occur only as slips.
+* Partially addresses the task.
+* Position may be unclear.
+* Ideas are limited and insufficiently developed.
 
-**Band 8:** Uses a wide range of structures; majority of sentences are error-free; makes only very occasional errors or inappropriacies.
+---
 
-**Band 7:** Uses a variety of complex structures; produces frequent error-free sentences; has good control of grammar and punctuation but may make a few errors.
+# Coherence and Cohesion
 
-**Band 6:** Uses a mix of simple and complex sentence forms; makes some errors in grammar and punctuation but they rarely reduce communication.
+## Band 9
 
-**Band 5:** Uses only a limited range of structures; attempts complex sentences but with limited accuracy; grammatical errors may be frequent and cause difficulty for the reader.
+* Cohesion attracts no attention.
+* Paragraphing is skilfully managed.
 
-## Task 2 examiner expectations
+## Band 8
 
-- Minimum 250 words; responses under 250 receive a penalty.
-- Must answer all parts of the prompt (e.g. discuss both views and give your opinion).
-- Clear position maintained throughout; each body paragraph has one central idea.
-- Ideas must be extended and supported with examples or explanation, not just listed.
-- Formal academic essay structure: introduction, body paragraphs, conclusion.
-- No bullet points; cohesive essay format required.
+* Information is logically organised.
+* Cohesive devices are used naturally.
+* Paragraphing is appropriate throughout.
+
+## Band 7
+
+* Clear logical progression.
+* Effective paragraphing.
+* Uses a range of linking devices appropriately.
+
+## Band 6
+
+* Overall progression is clear.
+* Some cohesion may be mechanical or repetitive.
+* Paragraphing is generally appropriate.
+
+## Band 5
+
+* Organisation is inconsistent.
+* Linking is weak, repetitive or inaccurate.
+
+---
+
+# Lexical Resource
+
+## Band 9
+
+* Wide range of vocabulary.
+* Precise and natural word choice.
+* Rare errors.
+
+## Band 8
+
+* Flexible vocabulary use.
+* Effective use of less common items.
+* Occasional minor inaccuracies.
+
+## Band 7
+
+* Sufficient flexibility.
+* Some less common vocabulary.
+* Occasional collocation or word-choice issues.
+
+## Band 6
+
+* Adequate vocabulary range.
+* Attempts more advanced vocabulary.
+* Some inaccuracies in spelling and word choice.
+
+## Band 5
+
+* Limited vocabulary range.
+* Frequent spelling and word-choice errors.
+
+---
+
+# Grammatical Range and Accuracy
+
+## Band 9
+
+* Wide range of structures.
+* Near-perfect accuracy.
+
+## Band 8
+
+* Wide range of structures.
+* Majority of sentences error-free.
+
+## Band 7
+
+* Variety of complex structures.
+* Frequent error-free sentences.
+* Good grammar control despite occasional mistakes.
+
+## Band 6
+
+* Mix of simple and complex structures.
+* Some grammar errors occur but meaning remains clear.
+
+## Band 5
+
+* Limited range of structures.
+* Frequent grammar errors.
+
+---
+
+# Task-Specific Requirements
+
+## Opinion Essays
+
+The essay must:
+
+* Clearly state an opinion.
+* Maintain that opinion throughout.
+* Support the opinion with developed arguments.
+
+If opinion is unclear:
+
+* Task Response should normally not exceed Band 6.
+
+---
+
+## Discuss Both Views Essays
+
+The essay must:
+
+* Discuss both viewpoints.
+* Present the writer's opinion if requested.
+
+If one view is ignored:
+
+* Task Response should normally not exceed Band 5.
+
+---
+
+## Advantages / Disadvantages Essays
+
+The essay must:
+
+* Discuss both advantages and disadvantages.
+* Provide a clear judgement if required.
+
+---
+
+## Problem / Solution Essays
+
+The essay must:
+
+* Explain the problems.
+* Provide relevant solutions.
+* Develop both parts sufficiently.
+
+---
+
+# Idea Development
+
+High-scoring essays:
+
+* Explain ideas clearly.
+* Show cause-and-effect relationships.
+* Include examples.
+* Extend ideas logically.
+
+Low-scoring essays:
+
+* List ideas without explanation.
+* Repeat the same point.
+* Use vague examples.
+
+---
+
+# Examiner Calibration
+
+Evaluate holistically.
+
+Do NOT:
+
+* Count errors and deduct marks.
+* Lower a band simply because many mistakes exist.
+
+Instead ask:
+
+"Which descriptor best matches this criterion overall?"
+
+A Band 6 essay may contain many grammar and spelling mistakes while still meeting Band 6 descriptors.
+
+---
+
+# Word Count
+
+Minimum:
+
+* 250 words
+
+Under 250 words:
+
+* Task Response penalty applies.
+
+Recommended:
+
+* 270–330 words
+
+---
+
+# Evaluation Output Format
+
+Provide:
+
+## Estimated Overall Band
+
+## Task Response
+
+(score + justification)
+
+## Coherence & Cohesion
+
+(score + justification)
+
+## Lexical Resource
+
+(score + justification)
+
+## Grammatical Range & Accuracy
+
+(score + justification)
+
+## Major Strengths
+
+## Major Weaknesses
+
+## Sentence-by-Sentence Corrections
+
+## Common Mistake Patterns
+
+## Band 7.5+ Rewrite
+
+Preserve the candidate's original ideas while improving:
+
+* vocabulary
+* grammar
+* cohesion
+* development
+* academic style
