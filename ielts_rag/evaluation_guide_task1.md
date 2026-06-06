@@ -1,81 +1,437 @@
-# IELTS Writing Task 1 — Evaluation Guide for AI Examiners
+# IELTS Writing Task 1 — Task-Type Evaluation Framework
 
-## What you are marking
+Before scoring, identify the Task 1 type.
 
-Task 1 is a **factual report** describing a chart, graph, table, map, or diagram. It is **NOT** an essay.
+Possible task types:
 
-- No personal opinion
-- No conclusion paragraph
-- No thesis or argument
-- Compare the student's **report** against the **chart image** when provided
+1. Line Graph
+2. Bar Chart
+3. Pie Chart
+4. Table
+5. Map
+6. Process Diagram
+7. Mixed Charts
+8. Multiple Diagrams
 
-## Scoring method
+The evaluator should apply the additional expectations below when assessing Task Achievement.
 
-Four criteria, each 25% of the final band:
+---
 
-1. **Task Achievement** — overview, key features selected, data accuracy, appropriate format
-2. **Coherence and Cohesion** — logical report structure and progression
-3. **Lexical Resource** — range and accuracy of data/trend vocabulary
-4. **Grammatical Range and Accuracy**
+# Line Graph Evaluation
 
-Overall band = average of the four criteria, rounded to the nearest 0.5.
+## Main Focus
 
-## Required report structure (4 paragraphs)
+- Trends over time
+- Increases and decreases
+- Peaks and troughs
+- Fluctuations
+- Comparisons between lines
 
-1. **Introduction** — paraphrase the task only (no data, no overview)
-2. **Overview** — main trends/differences at a glance (no specific figures)
-3. **Body 1** — one group of key features with figures and comparisons
-4. **Body 2** — remaining key features with figures and comparisons
+## High-Scoring Reports (Band 7+)
 
-**No 5th conclusion paragraph.** Penalise Task Achievement if the student writes an opinion conclusion.
+✓ Clear overview of overall trends
 
-## How to evaluate Task Achievement
+✓ Meaningful comparisons
 
-When a chart image is attached, **read the image** and check:
+✓ Appropriate grouping of information
 
-- Is there a clear **overview** separate from the introduction?
-- Are the **most significant trends/features** highlighted (not every number listed)?
-- Are **figures accurate** compared to the chart?
-- Are **comparisons** made (higher than, similar to, the most/least)?
-- Is the length appropriate (150+ words; 150–180 is ideal)?
+✓ Focus on major changes
 
-Score Task Achievement holistically — one wrong figure does not automatically mean Band 4 if the rest is strong.
+## Common Weaknesses
 
-## How to evaluate like a real examiner
+❌ Describing every year individually
 
-- Read the full report before assigning bands.
-- Score each criterion **holistically** against band descriptors.
-- **Band scores and mistake counts are separate.** Many language errors are normal at Band 6 in Task 1.
-- Do not deduct per individual error. Ask: "Which band descriptor best fits this criterion overall?"
-- Do not penalise the same issue twice across criteria.
-- Be fair — align with a standard ChatGPT IELTS Task 1 evaluation, not harsher.
+❌ Listing figures without comparison
 
-## Band score calculation
+❌ Missing major trends
 
-1. Assign each criterion a band (0–9, in 0.5 steps).
-2. Overall = average rounded to nearest 0.5.
-3. Example: 6.5 + 6.0 + 6.0 + 5.5 = 24.0 → 24.0/4 = **6.0** overall.
+## Useful Language
 
-## Calibration anchor (typical Band 6–6.5 Task 1 report)
+- increased
+- decreased
+- rose
+- fell
+- peaked at
+- bottomed out at
+- fluctuated
+- remained stable
+- experienced a gradual rise
+- witnessed a decline
 
-| Criterion | Band | When to use |
-|-----------|------|-------------|
-| Task Achievement | **6.5–7.0** | Clear overview, relevant key features selected, mostly accurate data — even if some figures are wrong |
-| Coherence & Cohesion | **6.0–6.5** | Clear 4-part report structure (intro, overview, 2 bodies); awkward linking is OK at this level |
-| Lexical Resource | **6.0** | Adequate trend vocabulary (increase, decline, peak, account for); spelling errors don't drop below 6 if range is OK |
-| Grammatical Range | **5.5–6.0** | Mix of sentence forms; errors in articles/prepositions common — score 5.5 if meaning is clear |
+---
 
-**Avoid over-penalising:**
-- Missing overview → affects Task Achievement, not necessarily all criteria
-- Data errors → Task Achievement / Data accuracy mistakes, not automatic Band 5 Grammar
-- No conclusion is **correct** for Task 1 — do not penalise for absence of conclusion
-- Adding a conclusion → minor Task Achievement issue (wrong format), not catastrophic
+# Bar Chart Evaluation
 
-## Band 7.5+ model report standards
+## Main Focus
 
-- 4 paragraphs only: intro → overview → body 1 → body 2
-- 150–180 words, concise
-- Accurate data from the chart image
-- Clear overview with no figures
-- Formal trend language and strong comparisons
-- **No conclusion, no opinion**
+- Highest and lowest categories
+- Rankings
+- Significant differences
+- Similarities between categories
+
+## High-Scoring Reports (Band 7+)
+
+✓ Categories compared effectively
+
+✓ Similar groups discussed together
+
+✓ Major differences highlighted
+
+## Common Weaknesses
+
+❌ Describing bars one by one
+
+❌ Repeating the same structure
+
+❌ Missing comparisons
+
+## Useful Language
+
+- accounted for
+- stood at
+- represented
+- exceeded
+- surpassed
+- recorded
+- was considerably higher than
+- was comparable to
+
+---
+
+# Pie Chart Evaluation
+
+## Main Focus
+
+- Proportions
+- Shares
+- Largest and smallest segments
+- Dominant categories
+
+## High-Scoring Reports (Band 7+)
+
+✓ Major proportions highlighted
+
+✓ Clear comparison of shares
+
+✓ Focus on dominant categories
+
+## Common Weaknesses
+
+❌ Repeating percentages
+
+❌ Treating the chart like a bar chart
+
+❌ Missing the largest contributor
+
+## Useful Language
+
+- proportion
+- percentage
+- share
+- accounted for
+- constituted
+- made up
+- represented
+
+---
+
+# Table Evaluation
+
+## Main Focus
+
+- Comparisons
+- Patterns
+- Highest and lowest values
+- Changes over time (if present)
+
+## High-Scoring Reports (Band 7+)
+
+✓ Information grouped logically
+
+✓ Clear pattern recognition
+
+✓ Effective comparisons
+
+## Common Weaknesses
+
+❌ Reading rows sequentially
+
+❌ Listing figures mechanically
+
+❌ Missing major patterns
+
+## Useful Language
+
+- stood at
+- recorded
+- reached
+- remained stable
+- increased to
+- declined to
+
+---
+
+# Map Evaluation
+
+## Main Focus
+
+- Additions
+- Removals
+- Relocations
+- Expansions
+- Unchanged features
+
+## High-Scoring Reports (Band 7+)
+
+✓ Overview highlights major developments
+
+✓ Changes grouped by area
+
+✓ Unchanged areas mentioned
+
+✓ Most significant transformations prioritised
+
+## Common Weaknesses
+
+❌ Listing every structure individually
+
+❌ Missing unchanged features
+
+❌ Weak overview
+
+## Useful Language
+
+- underwent significant development
+- was constructed
+- was expanded
+- was relocated
+- remained unchanged
+- was converted into
+- was replaced by
+- was demolished
+- was established
+
+---
+
+# Process Diagram Evaluation
+
+## Main Focus
+
+- Sequence of stages
+- Start point
+- End point
+- Coverage of all major steps
+
+## High-Scoring Reports (Band 7+)
+
+✓ Clear overview
+
+✓ All major stages described
+
+✓ Logical sequencing
+
+✓ Consistent passive structures
+
+## Common Weaknesses
+
+❌ Missing stages
+
+❌ Incorrect sequence
+
+❌ Explaining causes not shown
+
+❌ Mixing tenses
+
+## Useful Language
+
+- is harvested
+- is crushed
+- is filtered
+- is heated
+- is transported
+- is separated
+- undergoes
+- results in
+- is processed
+
+## Grammar Expectation
+
+Prefer present simple passive:
+
+✓ is harvested
+
+✓ is transported
+
+✓ is heated
+
+---
+
+# Mixed Charts Evaluation
+
+Examples:
+
+- Line + Bar
+- Pie + Table
+- Bar + Pie
+
+## Main Focus
+
+- Coverage of both visuals
+- Relationships between visuals
+- Balanced reporting
+
+## High-Scoring Reports (Band 7+)
+
+✓ Overview includes both visuals
+
+✓ Neither visual dominates excessively
+
+✓ Information grouped logically
+
+## Common Weaknesses
+
+❌ Ignoring one visual
+
+❌ 80/20 coverage split
+
+❌ Overview only mentions one chart
+
+---
+
+# Multiple Diagrams Evaluation
+
+Examples:
+
+- Two maps
+- Before-and-after diagrams
+- Multiple process diagrams
+
+## Main Focus
+
+- Major differences
+- Key developments
+- Significant changes
+
+## High-Scoring Reports (Band 7+)
+
+✓ Strong overview
+
+✓ Logical comparison
+
+✓ Effective grouping
+
+## Common Weaknesses
+
+❌ Describing each diagram separately without comparison
+
+❌ Missing major developments
+
+❌ Weak overview
+
+---
+
+# Task-Type-Specific Weighting
+
+When assessing Task Achievement, prioritise:
+
+## Line Graphs
+
+Most Important:
+- Trends
+- Comparisons
+
+Less Important:
+- Exact figures
+
+---
+
+## Bar Charts
+
+Most Important:
+- Comparisons
+- Rankings
+
+Less Important:
+- Every individual value
+
+---
+
+## Pie Charts
+
+Most Important:
+- Dominant proportions
+- Relative shares
+
+Less Important:
+- Listing all percentages
+
+---
+
+## Tables
+
+Most Important:
+- Patterns
+- Comparisons
+
+Less Important:
+- Reading rows mechanically
+
+---
+
+## Maps
+
+Most Important:
+- Major developments
+- Unchanged areas
+
+Less Important:
+- Every individual feature
+
+---
+
+## Process Diagrams
+
+Most Important:
+- Complete stage coverage
+- Correct sequence
+
+Less Important:
+- Numerical detail
+
+---
+
+## Mixed Charts
+
+Most Important:
+- Balanced coverage of all visuals
+- Integrated overview
+
+Less Important:
+- Exhaustive detail for one chart only
+
+---
+
+# Model Answer Expectations by Task Type
+
+Line Graphs:
+- 160–190 words
+
+Bar Charts:
+- 160–190 words
+
+Pie Charts:
+- 160–190 words
+
+Tables:
+- 160–190 words
+
+Maps:
+- 170–200 words
+
+Process Diagrams:
+- 160–190 words
+
+Mixed Charts:
+- 170–210 words
+
+Responses should remain concise, selective and comparative rather than describing every detail shown.

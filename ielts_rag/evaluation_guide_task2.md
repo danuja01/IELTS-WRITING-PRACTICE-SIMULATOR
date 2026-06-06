@@ -1,79 +1,395 @@
 # IELTS Writing Task 2 — Evaluation Guide for AI Examiners
 
-## What you are marking
+## What You Are Marking
 
-Task 2 is an **academic essay** presenting and supporting a position on a given topic.
+Task 2 is an academic essay presenting and supporting ideas in response to a question.
 
-- Clear **opinion/position** required
-- **Conclusion** required
-- Ideas must be **extended and supported** with explanation or examples
-- Minimum **250 words** (penalty below 250)
+Task 2 requires:
 
-## Scoring method
+* A clear response to the prompt
+* Relevant and developed ideas
+* Formal academic style
+* Clear paragraphing
+* A conclusion
 
-Four criteria, each 25% of the final band:
+Minimum length:
 
-1. **Task Response** — addresses all parts of the prompt, clear position, developed ideas
-2. **Coherence and Cohesion** — essay structure, paragraphing, logical flow
-3. **Lexical Resource** — range, accuracy, and appropriacy of vocabulary
-4. **Grammatical Range and Accuracy**
+* 250 words
 
-Overall band = average of the four criteria, rounded to the nearest 0.5.
+Responses below 250 words receive a Task Response penalty.
 
-## Required essay structure
+---
 
-1. **Introduction** — paraphrase question + clear thesis/position
-2. **Body paragraphs** (2–3) — one central idea each, extended with examples/explanation
-3. **Conclusion** — summarise position (no new ideas)
+# Scoring Method
 
-## How to evaluate Task Response
+IELTS Writing Task 2 is assessed using four criteria:
 
-- Does the essay address **every part** of the prompt (e.g. discuss both views AND give opinion)?
-- Is a **clear position** maintained throughout?
-- Are ideas **developed** or just listed?
-- Is the format an essay (not bullet points)?
+1. Task Response
+2. Coherence and Cohesion
+3. Lexical Resource
+4. Grammatical Range and Accuracy
 
-Score Task Response holistically — reward a clear, fully developed argument even when language is weak.
+Each criterion contributes 25%.
 
-## How to evaluate like a real examiner
+Overall Band Score:
 
-- Read the full essay before assigning bands.
-- Score each criterion **holistically** against band descriptors.
-- **Band scores and mistake counts are separate.** A Band 6 essay often has 15–25 language errors — that is normal.
-- Do not deduct band points per individual error.
-- Do not penalise the same issue twice across criteria.
-- Be fair — match a standard ChatGPT IELTS Task 2 evaluation, not harsher.
+* Average the four criteria
+* Round to the nearest 0.5 band
 
-## Band score calculation
+Example:
 
-1. Assign each criterion a band (0–9, in 0.5 steps).
-2. Overall = average rounded to nearest 0.5.
-3. Example: 7.0 + 6.5 + 6.0 + 5.5 = 25.0 → 25.0/4 = 6.25 → **6.5** overall.
-4. The overall band MUST match this calculation.
+TR = 7.0
 
-## Calibration anchor (match ChatGPT IELTS tutor style)
+CC = 6.5
 
-Balanced, not overly punitive. Reference for a typical Band 6–6.5 essay with clear ideas but language errors:
+LR = 6.0
 
-| Criterion | Band | When to use |
-|-----------|------|-------------|
-| Task Response | **7.0** | Fully answers all parts, clear opinion, relevant examples — even if language is imperfect |
-| Coherence & Cohesion | **6.5** | Clear paragraph structure (e.g. 4 paragraphs), logical progression; awkward linking does NOT drop to 5.0 |
-| Lexical Resource | **6.0** | Good vocabulary attempts; frequent spelling mistakes — still Band 6 if range is adequate |
-| Grammatical Range | **5.5** | Some complex sentences; many grammar errors — score 5.5, not 5.0, if meaning is clear |
+GRA = 5.5
 
-**Common over-marking mistakes to AVOID:**
-- Task Response at 5–6 when the essay clearly answers with a developed position → **6.5–7.0**
-- Coherence at 5 when paragraphing is clear but linking is weak → **6.0–6.5**
-- Lexical Resource at 5 when vocabulary is varied but spelling is weak → **6.0**
-- Grammar at 5 when complex structures are used and meaning is clear → **5.5–6.0**
-- Letting the mistake list pull bands downward — mistakes are for feedback only
+Average:
 
-## Band 7.5+ rewrite standards
+25 ÷ 4 = 6.25
 
-- Fully addresses the prompt with a clear thesis
-- Developed body paragraphs with examples
-- Strong conclusion restating the position
-- 280+ words
-- Formal academic tone; varied vocabulary and complex sentences
-- Wrap improvements in `<<double angle brackets>>`
+Final Overall Band = 6.5
+
+---
+
+# Standard Essay Structure
+
+## Introduction
+
+Should include:
+
+* Paraphrase of the topic
+* Clear thesis statement
+* Clear opinion if required
+
+---
+
+## Body Paragraphs
+
+Normally 2 body paragraphs.
+
+Each body paragraph should:
+
+* Contain one central idea
+* Explain the idea
+* Extend the idea
+* Support the idea with an example or explanation
+
+---
+
+## Conclusion
+
+Should:
+
+* Summarise the main position
+* Contain no new ideas
+
+---
+
+# Task Response
+
+Evaluate:
+
+* Coverage of all parts of the question
+* Relevance of ideas
+* Development of ideas
+* Clarity of position
+* Quality of support
+
+---
+
+# Task-Type-Specific Requirements
+
+## Opinion Essays
+
+Examples:
+
+* To what extent do you agree or disagree?
+* Do you agree or disagree?
+
+Requirements:
+
+✓ Clear opinion
+
+✓ Opinion maintained throughout
+
+✓ Arguments support the opinion
+
+If the opinion is unclear:
+
+* Task Response should normally not exceed Band 6.
+
+---
+
+## Discuss Both Views Essays
+
+Examples:
+
+* Discuss both views and give your opinion.
+
+Requirements:
+
+✓ Discuss both views
+
+✓ Give a clear opinion
+
+✓ Opinion may appear throughout or in the conclusion
+
+If one view is ignored:
+
+* Task Response should normally not exceed Band 5.
+
+---
+
+## Advantages / Disadvantages Essays
+
+Examples:
+
+* Do the advantages outweigh the disadvantages?
+
+Requirements:
+
+✓ Discuss both advantages and disadvantages
+
+✓ Provide a judgement if required
+
+If one side is omitted:
+
+* Task Response should normally not exceed Band 5.
+
+---
+
+## Problem / Solution Essays
+
+Requirements:
+
+✓ Explain the problems
+
+✓ Explain the solutions
+
+✓ Develop both parts sufficiently
+
+If only problems or only solutions are discussed:
+
+* Task Response should normally not exceed Band 5.
+
+---
+
+## Two-Part Question Essays
+
+Requirements:
+
+✓ Answer both questions
+
+✓ Develop both answers
+
+If one question is ignored:
+
+* Task Response should normally not exceed Band 5.
+
+---
+
+# Idea Development Standards
+
+Band 7+ ideas:
+
+* Clearly explained
+* Extended logically
+* Supported by examples or reasoning
+
+Weak development:
+
+❌ Listing ideas
+
+❌ One-sentence explanations
+
+❌ Repetition
+
+Strong development:
+
+Point → Explanation → Example → Link
+
+---
+
+# Coherence and Cohesion
+
+Evaluate:
+
+* Logical progression
+* Paragraphing
+* Topic sentences
+* Linking devices
+
+Band 7:
+
+✓ Clear progression
+
+✓ Well-organised paragraphs
+
+✓ Appropriate linking
+
+Band 6:
+
+✓ Overall progression
+
+✓ Some awkward or repetitive linking
+
+Do not reduce Coherence excessively because of occasional linking errors.
+
+---
+
+# Lexical Resource
+
+Evaluate:
+
+* Range of vocabulary
+* Precision
+* Collocations
+* Word formation
+* Spelling
+
+Band 6:
+
+* Adequate vocabulary
+* Attempts less common vocabulary
+* Some inaccuracies
+
+Band 7:
+
+* Flexible vocabulary use
+* Good collocations
+* Some less common vocabulary
+
+Do not reduce Lexical Resource below Band 6 solely because of spelling mistakes if vocabulary range is adequate.
+
+---
+
+# Grammatical Range and Accuracy
+
+Evaluate:
+
+* Sentence variety
+* Complex structures
+* Accuracy
+* Punctuation
+
+Band 7:
+
+* Variety of structures
+* Frequent error-free sentences
+* Errors do not significantly affect clarity
+
+Band 6:
+
+* Mix of simple and complex structures
+* Errors occur regularly
+* Meaning remains clear
+
+Band 5:
+
+* Errors frequently affect understanding
+
+---
+
+# Word Count Guidance
+
+Minimum:
+
+* 250 words
+
+Recommended:
+
+* 270–330 words
+
+Avoid:
+
+* Under 250 words
+* Excessively long essays (400+ words)
+
+---
+
+# Examiner Calibration
+
+Evaluate holistically.
+
+Important:
+
+* Band scores and mistake counts are separate.
+* Do not deduct marks per individual error.
+* Do not penalise the same issue twice.
+* Compare against IELTS descriptors, not perfection.
+
+A Band 6 essay may contain many language mistakes while still meeting Band 6 descriptors.
+
+---
+
+# Common Over-Marking Mistakes to Avoid
+
+❌ Giving Task Response 5 when the essay clearly answers the question
+
+❌ Giving Coherence 5 when paragraphing is clear
+
+❌ Giving Lexical Resource 5 solely because of spelling mistakes
+
+❌ Giving Grammar 5 when meaning remains clear
+
+❌ Letting the mistake list determine the score
+
+---
+
+# Band 7.5+ Rewrite Standards
+
+The rewrite must:
+
+* Preserve the candidate's original ideas
+* Improve development
+* Improve cohesion
+* Improve vocabulary
+* Improve grammar
+* Maintain formal academic style
+
+Target length:
+
+* 280–330 words
+
+Use:
+
+Point → Explanation → Example → Link
+
+throughout body paragraphs.
+
+---
+
+# Evaluation Output Format
+
+Provide:
+
+## Estimated Overall Band
+
+## Task Response
+
+(score + justification)
+
+## Coherence & Cohesion
+
+(score + justification)
+
+## Lexical Resource
+
+(score + justification)
+
+## Grammatical Range & Accuracy
+
+(score + justification)
+
+## Major Strengths
+
+## Major Weaknesses
+
+## Sentence-by-Sentence Corrections
+
+## Common Mistake Patterns
+
+## Band 7.5+ Rewrite
