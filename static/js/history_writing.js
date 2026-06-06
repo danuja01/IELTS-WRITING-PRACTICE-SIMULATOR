@@ -55,7 +55,10 @@
 
   function renderRewrite(text) {
     if (!text) return "";
-    const parts = String(text).split(/(<<[^>]+>>)/g);
+    const cleaned = String(text)
+      .replace(/<br\s*\/?>/gi, "\n\n")
+      .replace(/<\/?p>/gi, "\n\n");
+    const parts = cleaned.split(/(<<[^>]+>>)/g);
     return parts
       .map((part) => {
         if (part.startsWith("<<") && part.endsWith(">>")) {
