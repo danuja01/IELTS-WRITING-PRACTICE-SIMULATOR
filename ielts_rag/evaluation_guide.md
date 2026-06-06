@@ -30,8 +30,26 @@ The overall band is the average of the four criteria, rounded to the nearest 0.5
 
 1. Assign each of the four criteria a band (0–9, in 0.5 steps).
 2. Overall band = average of the four criteria, rounded to the nearest 0.5.
-3. Example: 6.0 + 6.0 + 5.5 + 6.0 = 23.5 → 23.5/4 = 5.875 → **6.0** overall.
+3. Example: 7.0 + 6.5 + 6.0 + 5.5 = 25.0 → 25.0/4 = 6.25 → **6.5** overall.
 4. The overall band MUST match this calculation from your four criterion scores.
+
+## Calibration anchor (match ChatGPT IELTS tutor style)
+
+Score like a helpful IELTS tutor on ChatGPT — balanced, not overly punitive. Use this profile as a reference for a typical Band 6–6.5 essay with clear ideas but language errors:
+
+| Criterion | Band | When to use |
+|-----------|------|-------------|
+| Task Response | **7.0** | Fully answers all parts of the prompt, clear opinion/position, relevant examples — even if language is imperfect |
+| Coherence & Cohesion | **6.5** | Clear paragraph structure (e.g. 4 paragraphs), logical progression; awkward linking does NOT drop this to 5.0 |
+| Lexical Resource | **6.0** | Good vocabulary range and attempts; frequent spelling mistakes reduce but do not destroy the score — still Band 6 if range is adequate |
+| Grammatical Range | **5.5** | Some complex sentences attempted; many grammar/article/verb errors — score 5.5, not 5.0, if meaning is still clear |
+
+**Common over-marking mistakes to AVOID:**
+- Scoring Task Response at 5–6 when the essay clearly answers the question with a developed position → should be **6.5–7.0**
+- Scoring Coherence at 5 when paragraphing is clear but linking is weak → should be **6.0–6.5**
+- Scoring Lexical Resource at 5 when vocabulary is varied but spelling is weak → should be **6.0**
+- Scoring Grammar at 5 when complex structures are used and meaning is clear → should be **5.5–6.0**
+- Letting the mistake list influence bands downward — mistakes are for feedback only
 
 ## Band 7.5+ rewrite standards
 

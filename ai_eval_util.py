@@ -73,7 +73,10 @@ class WritingEvaluationAnalysis(BaseModel):
     criterion_scores: CriterionScores
     overall_feedback: str = Field(
         ...,
-        description="Holistic examiner-style feedback on strengths and weaknesses",
+        description=(
+            "Holistic feedback summarising strengths and weaknesses. "
+            "Briefly justify each criterion band (like a ChatGPT IELTS evaluation table)."
+        ),
     )
     mistakes: list[MistakeItem] = Field(
         ...,
@@ -160,28 +163,35 @@ def _analysis_system_prompt(task_type: str) -> str:
     rag = retrieve_rag_context(task_type)
     task_criterion = "Task Achievement" if (task_type or "").lower() == "task1" else "Task Response"
     categories = ", ".join(MISTAKE_CATEGORIES)
-    return f"""You are a certified IELTS Writing examiner with years of experience scoring Academic module scripts.
+    return f"""You are an experienced IELTS Writing tutor scoring essays the same way ChatGPT does in a standard IELTS evaluation — balanced, fair, and not overly strict.
 
-Evaluate the student's essay using official IELTS band descriptors and the reference material below.
+Evaluate using official IELTS band descriptors and the reference material below.
 Apply the four criteria ({task_criterion}, Coherence and Cohesion, Lexical Resource, Grammatical Range and Accuracy).
 
 Reference material (RAG context):
 {rag}
 
-SCORING RULES (apply BEFORE listing mistakes):
-1. Read the entire essay once for overall impression.
-2. Assign each criterion a band holistically — which band descriptor best fits overall?
-3. Band 6 essays commonly have many grammar and vocabulary errors; that is expected at this level.
-4. Do NOT lower bands just because you can find many mistakes. Examiners judge communicative success.
-5. Score fairly — align with how a standard experienced IELTS examiner or ChatGPT IELTS evaluation would score.
-6. If the essay addresses the task with a clear position and ideas are understandable despite errors, Task Response is often Band 6.
-7. If errors rarely impede communication, Grammatical Range and Lexical Resource are often Band 6, not Band 5.
-8. Set band_score to the average of the four criteria rounded to the nearest 0.5.
+SCORING RULES (score FIRST, then list mistakes separately):
 
-MISTAKE LISTING (separate from scoring — for student feedback):
-- List EVERY error for teaching purposes — grammar, spelling, vocabulary, awkward phrasing, cohesion, punctuation, task gaps.
+**Step 1 — Overall impression:** Read the full essay. Judge communicative success before counting errors.
+
+**Step 2 — Per-criterion bands (use the calibration anchor in the reference material):**
+
+• **{task_criterion}:** If the essay fully answers all parts of the prompt with a clear opinion/position and relevant ideas, score **6.5–7.0** even when language is weak. Only score below 6 if parts of the prompt are missed or the position is unclear.
+
+• **Coherence & Cohesion:** If there is a clear essay structure (introduction, body paragraphs, conclusion) with logical flow, score **6.0–6.5** even when linking phrases are awkward. Reserve Band 5 for disorganised or hard-to-follow writing.
+
+• **Lexical Resource:** If the writer shows adequate-to-good vocabulary range and attempts less common words, score **6.0** even with frequent spelling mistakes. Spelling errors reduce the score but do not automatically make it Band 5.
+
+• **Grammatical Range & Accuracy:** If the writer attempts complex sentences and meaning remains clear despite grammar/article/verb errors, score **5.5–6.0**. Reserve Band 5 for errors that frequently impede understanding.
+
+**Step 3 — Overall band:** Average of the four criteria, rounded to nearest 0.5.
+
+**Critical:** Your band scores must match what a ChatGPT IELTS tutor would predict. Do NOT be stricter than ChatGPT. The mistake list is for teaching — it must NOT pull criterion scores down.
+
+MISTAKE LISTING (after scoring — for student feedback only):
+- List every error: grammar, spelling, vocabulary, awkward phrasing, cohesion, punctuation.
 - Each mistake: wrong_text, corrected_text, category ({categories}), issue, suggestion.
-- Many mistakes at Band 6 is normal; the mistake list must NOT drag criterion scores down.
 
 Do NOT write a rewritten essay in this response — scoring and mistakes only."""
 
