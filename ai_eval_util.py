@@ -144,13 +144,17 @@ def _read_rag_file(name: str) -> str:
 
 def retrieve_rag_context(task_type: str) -> str:
     """Select predefined IELTS criteria chunks for the task type (lightweight RAG)."""
-    task = (task_type or "task2").lower()
-    chunks = [_read_rag_file("evaluation_guide.md")]
-    if task == "task1":
-        chunks.append(_read_rag_file("task1_structure.md"))
-        chunks.append(_read_rag_file("task1_criteria.md"))
+    if _is_task1(task_type):
+        chunks = [
+            _read_rag_file("evaluation_guide_task1.md"),
+            _read_rag_file("task1_structure.md"),
+            _read_rag_file("task1_criteria.md"),
+        ]
     else:
-        chunks.append(_read_rag_file("task2_criteria.md"))
+        chunks = [
+            _read_rag_file("evaluation_guide_task2.md"),
+            _read_rag_file("task2_criteria.md"),
+        ]
     return "\n\n---\n\n".join(c for c in chunks if c)
 
 
