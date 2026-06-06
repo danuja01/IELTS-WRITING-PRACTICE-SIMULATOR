@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Settings</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ app_version }}">
+</head>
+<body>
+  <header class="topbar">
+    <h1>AI Settings</h1>
+    <a href="{{ url_for('home') }}" class="btn secondary">← Home</a>
+  </header>
+  <main class="home-main">
+    <section class="panel">
+      <h2>OpenRouter API key</h2>
+      <p class="q-meta">
+        AI essay evaluation uses your own OpenRouter API key so you can access ChatGPT/OpenAI models
+        (e.g. <code>openai/gpt-4o-mini</code>) via
+        <a href="https://openrouter.ai/" target="_blank" rel="noopener">OpenRouter</a>.
+        Your key is encrypted and stored only for your account.
+      </p>
+      <p class="msg" id="settings-msg"></p>
+      <form id="ai-settings-form">
+        <label for="openrouter-key">OpenRouter API key</label>
+        <input type="password" id="openrouter-key" autocomplete="off" placeholder="sk-or-…">
+        <p class="q-meta" id="key-status">Loading…</p>
+        <div class="inline-form">
+          <button type="submit">Save key</button>
+          <button type="button" class="secondary" id="remove-key-btn" hidden>Remove key</button>
+        </div>
+      </form>
+    </section>
+  </main>
+  <script src="{{ url_for('static', filename='js/settings.js') }}?v={{ app_version }}"></script>
+</body>
+</html>

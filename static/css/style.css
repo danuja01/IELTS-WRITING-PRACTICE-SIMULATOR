@@ -710,6 +710,135 @@ body.practice-page {
   color: var(--accent);
 }
 
+.modal-eval {
+  max-width: 720px;
+  max-height: min(90vh, 900px);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+.modal-eval-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-eval-head h3 {
+  margin: 0;
+}
+
+.modal-close {
+  border: none;
+  background: transparent;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0 0.25rem;
+}
+
+.eval-modal-body {
+  overflow: auto;
+  padding: 1rem 1.25rem;
+}
+
+.modal-eval-foot {
+  padding: 0.75rem 1.25rem 1rem;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
+.link-btn {
+  border: none;
+  background: none;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+}
+
+.eval-band {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.eval-band-label {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.eval-band-score {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.eval-section {
+  margin-top: 1.25rem;
+}
+
+.eval-section h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  color: var(--accent);
+}
+
+.eval-text {
+  margin: 0;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.eval-mistake-list,
+.eval-improve-list {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.eval-mistake {
+  margin-bottom: 1rem;
+}
+
+.eval-mistake-cat {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+.eval-excerpt {
+  margin: 0.35rem 0;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--accent);
+  background: var(--bg);
+  font-family: var(--font-write);
+  font-size: 0.9rem;
+}
+
+.eval-rewrite {
+  max-height: 240px;
+  overflow: auto;
+}
+
+.eval-meta {
+  margin-top: 1rem;
+}
+
+.eval-loading {
+  text-align: center;
+  padding: 2rem 0;
+}
+
 .stat-grid {
   display: grid;
   gap: 0.5rem;

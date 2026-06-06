@@ -18,6 +18,20 @@
   <main class="home-main" id="detail-root">
     <p class="q-meta">Loading…</p>
   </main>
+  <div class="modal-backdrop" id="eval-modal">
+    <div class="modal modal-eval">
+      <div class="modal-eval-head">
+        <h3>AI Evaluation</h3>
+        <button type="button" class="modal-close" id="eval-modal-close" aria-label="Close">×</button>
+      </div>
+      <div id="eval-modal-body" class="eval-modal-body">
+        <p class="q-meta">Loading…</p>
+      </div>
+      <div class="modal-eval-foot">
+        <button type="button" class="link-btn" id="eval-regenerate" hidden>Regenerate</button>
+      </div>
+    </div>
+  </div>
   <script>
     window.HISTORY_WRITING_ID = {{ writing_id }};
     window.ADMIN_VIEW = {{ 'true' if admin_view else 'false' }};
