@@ -1,4 +1,4 @@
-"""Shared utilities for the evaluation chain."""
+"""Shared utilities and schemas for the evaluation chain."""
 from __future__ import annotations
 
 import base64
@@ -6,7 +6,7 @@ import math
 import mimetypes
 import os
 import re
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -24,68 +24,90 @@ class CriterionScores(BaseModel):
     grammatical_range: float = Field(..., ge=0, le=9)
 
 
-class MistakeItem(BaseModel):
-    category: str = Field(..., description="Mistake category from the allowed list")
-    wrong_text: str = Field(
+class CorrectionItem(BaseModel):
+    original: str = Field(..., description="Incorrect word or short phrase from the student's text")
+    corrected: str = Field(..., description="Corrected version")
+    note: str = Field(default="", description="Optional brief note")
+
+
+class SentenceComment(BaseModel):
+    status: Literal["accurately_hit", "slightly_off", "off_key"] = Field(
         ...,
-        description=(
-            "ONLY the incorrect word or short phrase (e.g. 'competetion', 'more better'). "
-            "Not a full sentence unless the entire sentence is wrong."
-        ),
+        description="accurately_hit = good; slightly_off = minor issues; off_key = significant problem",
     )
-    corrected_text: str = Field(
-        ...,
-        description="The corrected word or short phrase matching wrong_text scope",
+    sentence: str = Field(..., description="Exact sentence from the student's writing")
+    comment: str = Field(..., description="Brief constructive explanation")
+
+
+class CriterionComment(BaseModel):
+    summary: str = Field(..., description="One paragraph of feedback for this criterion")
+    corrections_title: str = Field(
+        default="",
+        description="Subsection title e.g. 'Misspelling', 'Grammatical Errors', 'Linking Issues'",
     )
-    issue: str = Field(..., description="Brief explanation of why this is wrong")
-    suggestion: str = Field(..., description="One practical tip to avoid this in future")
+    corrections: list[CorrectionItem] = Field(default_factory=list)
+    sentence_comments: list[SentenceComment] = Field(
+        default_factory=list,
+        description="Sentence-level comments — mainly for Task Achievement/Response",
+    )
 
 
 class WritingEvaluationAnalysis(BaseModel):
-    band_score: float = Field(..., ge=0, le=9)
     criterion_scores: CriterionScores
-    overall_feedback: list[str] = Field(
-        ...,
-        min_length=3,
-        max_length=8,
-        description=(
-            "Bullet-point summary of strengths and weaknesses. "
-            "Each item is one concise point (no paragraphs)."
-        ),
+    band_score: float = Field(..., ge=0, le=9)
+    task_comment: CriterionComment
+    coherence_comment: CriterionComment
+    lexical_comment: CriterionComment
+    grammar_comment: CriterionComment
+    corrections: list[CorrectionItem] = Field(
+        default_factory=list,
+        description="Task 2: top corrections list shown before criterion comments",
     )
-    mistakes: list[MistakeItem]
-    areas_for_improvement: list[str] = Field(..., min_length=2)
+    overall_review: str = Field(
+        ...,
+        description="One balanced paragraph summarising strengths, weaknesses, and overall impression",
+    )
 
 
 class WritingRewriteResult(BaseModel):
     rewritten_essay: str = Field(
         ...,
-        description=(
-            "Complete model answer. Wrap ONLY changed words or short phrases in <<>> — "
-            "never an entire sentence. Most sentences should have zero highlights."
-        ),
+        description="Complete optimized composition — plain text, no markup or highlights",
     )
 
 
 class WritingEvaluationResult(BaseModel):
     band_score: float
     criterion_scores: CriterionScores
-    overall_feedback: list[str]
-    mistakes: list[MistakeItem]
-    areas_for_improvement: list[str]
+    overall_review: str
+    task_comment: CriterionComment
+    coherence_comment: CriterionComment
+    lexical_comment: CriterionComment
+    grammar_comment: CriterionComment
+    corrections: list[CorrectionItem]
     rewritten_essay: str
     question_subtype: str = ""
-    classification_reasoning: str = ""
+    format_version: int = 2
+
+
+# Legacy aliases for imports
+MistakeItem = CorrectionItem
 
 
 def evaluation_to_dict(result: WritingEvaluationResult, *, model: str) -> dict:
     return {
+        "format_version": result.format_version,
         "band_score": result.band_score,
         "criterion_scores": result.criterion_scores.model_dump(),
-        "overall_feedback": result.overall_feedback,
-        "mistakes": [m.model_dump() for m in result.mistakes],
-        "areas_for_improvement": result.areas_for_improvement,
+        "overall_review": result.overall_review,
+        "task_comment": result.task_comment.model_dump(),
+        "coherence_comment": result.coherence_comment.model_dump(),
+        "lexical_comment": result.lexical_comment.model_dump(),
+        "grammar_comment": result.grammar_comment.model_dump(),
+        "corrections": [c.model_dump() for c in result.corrections],
+        "optimized_composition": result.rewritten_essay,
         "rewritten_essay": result.rewritten_essay,
+        "question_subtype": result.question_subtype,
         "model": model,
     }
 
@@ -136,6 +158,7 @@ def clean_rewrite(text: str) -> str:
     text = (text or "").strip()
     text = re.sub(r"<br\s*/?>", "\n\n", text, flags=re.IGNORECASE)
     text = re.sub(r"</?p>", "\n\n", text, flags=re.IGNORECASE)
+    text = re.sub(r"<<([^>]+)>>", r"\1", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
 
