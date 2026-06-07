@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.3.0
+
+- **AI evaluation**: LangGraph pipeline with automatic question-type classification (Task 1 visual types, Task 2 essay types)
+- **RAG**: Type-specific evaluation criteria and rewrite guidance per chart/essay subtype
+- **API**: Evaluation responses include `question_subtype` and `classification_reasoning`
+
 ## 4.0.0
 
 - **Sub-admin role**: view-only admin panel access for students’ questions and attempts; full admins grant optional capabilities (reset passwords, edit users, edit questions)
