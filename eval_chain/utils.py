@@ -25,29 +25,52 @@ class CriterionScores(BaseModel):
 
 
 class MistakeItem(BaseModel):
-    category: str
-    wrong_text: str
-    corrected_text: str
-    issue: str
-    suggestion: str
+    category: str = Field(..., description="Mistake category from the allowed list")
+    wrong_text: str = Field(
+        ...,
+        description=(
+            "ONLY the incorrect word or short phrase (e.g. 'competetion', 'more better'). "
+            "Not a full sentence unless the entire sentence is wrong."
+        ),
+    )
+    corrected_text: str = Field(
+        ...,
+        description="The corrected word or short phrase matching wrong_text scope",
+    )
+    issue: str = Field(..., description="Brief explanation of why this is wrong")
+    suggestion: str = Field(..., description="One practical tip to avoid this in future")
 
 
 class WritingEvaluationAnalysis(BaseModel):
     band_score: float = Field(..., ge=0, le=9)
     criterion_scores: CriterionScores
-    overall_feedback: str
+    overall_feedback: list[str] = Field(
+        ...,
+        min_length=3,
+        max_length=8,
+        description=(
+            "Bullet-point summary of strengths and weaknesses. "
+            "Each item is one concise point (no paragraphs)."
+        ),
+    )
     mistakes: list[MistakeItem]
     areas_for_improvement: list[str] = Field(..., min_length=2)
 
 
 class WritingRewriteResult(BaseModel):
-    rewritten_essay: str
+    rewritten_essay: str = Field(
+        ...,
+        description=(
+            "Complete model answer. Wrap ONLY changed words or short phrases in <<>> — "
+            "never an entire sentence. Most sentences should have zero highlights."
+        ),
+    )
 
 
 class WritingEvaluationResult(BaseModel):
     band_score: float
     criterion_scores: CriterionScores
-    overall_feedback: str
+    overall_feedback: list[str]
     mistakes: list[MistakeItem]
     areas_for_improvement: list[str]
     rewritten_essay: str

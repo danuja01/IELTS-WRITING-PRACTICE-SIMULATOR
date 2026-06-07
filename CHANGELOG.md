@@ -1,5 +1,12 @@
 # Changelog
 
+## 5.3.2
+
+- **Evaluation output**: Overall feedback is now structured bullet points
+- **Prompts**: Simplified and fairer — no false Task Response flags for wrong essay type (e.g. two-part opinion questions)
+- **Mistakes**: Pinpoint wrong word/phrase only, not whole sentences
+- **Rewrite**: Highlight only changed words/phrases in green, not entire sentences
+
 ## 5.3.1
 
 - **Fix**: Restore missing `build_evaluation_graph()` (evaluation failed at runtime)

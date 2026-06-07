@@ -386,6 +386,14 @@ def _evaluation_json(row):
             d[key] = json.loads(raw) if isinstance(raw, str) else (raw or [])
         except json.JSONDecodeError:
             d[key] = [] if key != "criterion_scores" else {}
+    raw_feedback = d.get("overall_feedback")
+    if isinstance(raw_feedback, str) and raw_feedback.strip().startswith("["):
+        try:
+            parsed = json.loads(raw_feedback)
+            if isinstance(parsed, list):
+                d["overall_feedback"] = parsed
+        except json.JSONDecodeError:
+            pass
     return d
 
 
@@ -1571,7 +1579,9 @@ def _save_evaluation(wid: int, user_id: int, payload: dict, model: str):
             (
                 payload["band_score"],
                 json.dumps(payload["criterion_scores"]),
-                payload["overall_feedback"],
+                json.dumps(payload["overall_feedback"])
+                if isinstance(payload.get("overall_feedback"), list)
+                else payload["overall_feedback"],
                 json.dumps(payload["mistakes"]),
                 json.dumps(payload["areas_for_improvement"]),
                 payload["rewritten_essay"],
@@ -1592,7 +1602,9 @@ def _save_evaluation(wid: int, user_id: int, payload: dict, model: str):
                 user_id,
                 payload["band_score"],
                 json.dumps(payload["criterion_scores"]),
-                payload["overall_feedback"],
+                json.dumps(payload["overall_feedback"])
+                if isinstance(payload.get("overall_feedback"), list)
+                else payload["overall_feedback"],
                 json.dumps(payload["mistakes"]),
                 json.dumps(payload["areas_for_improvement"]),
                 payload["rewritten_essay"],

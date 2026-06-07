@@ -69,14 +69,35 @@
       .join("");
   }
 
+  function normalizeFeedback(feedback) {
+    if (Array.isArray(feedback)) {
+      return feedback.filter(Boolean);
+    }
+    if (!feedback) return [];
+    const text = String(feedback).trim();
+    if (!text) return [];
+    if (text.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed)) return parsed.filter(Boolean);
+      } catch {
+        /* legacy string */
+      }
+    }
+    return text
+      .split(/\n+/)
+      .map((line) => line.replace(/^[\s•\-–]+/, "").trim())
+      .filter(Boolean);
+  }
+
   function renderMistake(m) {
     const wrong = m.wrong_text || m.excerpt || "";
-    const corrected = m.corrected_text || m.suggestion || "";
+    const corrected = m.corrected_text || "";
     const correctionLine =
       wrong || corrected
         ? `<p class="eval-correction-line">
-            ${wrong ? `<span class="eval-wrong">❌ ${esc(wrong)}</span>` : ""}
-            ${corrected ? `<span class="eval-correct">✅ ${esc(corrected)}</span>` : ""}
+            ${wrong ? `<span class="eval-wrong">❌ <span class="eval-wrong-text">${esc(wrong)}</span></span>` : ""}
+            ${corrected ? `<span class="eval-correct">✅ <span class="eval-correct-text">${esc(corrected)}</span></span>` : ""}
           </p>`
         : "";
 
@@ -85,8 +106,14 @@
         <span class="eval-mistake-cat">${esc(m.category || "Issue")}</span>
         ${correctionLine}
         <p class="eval-issue"><strong>Issue:</strong> <span class="eval-issue-text">${esc(m.issue || "")}</span></p>
-        ${m.suggestion && m.corrected_text ? `<p class="eval-suggestion"><strong>Tip:</strong> ${esc(m.suggestion)}</p>` : ""}
+        ${m.suggestion ? `<p class="eval-suggestion"><strong>Tip:</strong> ${esc(m.suggestion)}</p>` : ""}
       </li>`;
+  }
+
+  function renderFeedbackList(feedback) {
+    const points = normalizeFeedback(feedback);
+    if (!points.length) return '<p class="q-meta">No feedback yet.</p>';
+    return `<ul class="eval-feedback-list">${points.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>`;
   }
 
   function renderEvaluation(evalData, taskType) {
@@ -119,7 +146,7 @@
       <div class="stat-grid eval-criteria">${scoreRows}</div>
       <section class="eval-section">
         <h4>Overall feedback</h4>
-        <p class="eval-text">${esc(evalData.overall_feedback)}</p>
+        ${renderFeedbackList(evalData.overall_feedback)}
       </section>
       <section class="eval-section">
         <h4>All mistakes found <span class="eval-count">(${mistakeCount})</span></h4>
@@ -131,7 +158,7 @@
       </section>
       <section class="eval-section">
         <h4>Band 7.5+ ${(taskType || "task2") === "task1" ? "model report" : "rewrite"}</h4>
-        <p class="q-meta eval-rewrite-legend"><span class="eval-highlight-inline">Green bold</span> = improved words &amp; phrases${(taskType || "task2") === "task1" ? " · Task 1: intro, overview, 2 body paragraphs (no conclusion)" : ""}</p>
+        <p class="q-meta eval-rewrite-legend"><span class="eval-wrong-inline">Red</span> = mistake in your writing · <span class="eval-highlight-inline">Green bold</span> = improved word or phrase only (not whole sentences)${(taskType || "task2") === "task1" ? " · Task 1: intro, overview, 2 body paragraphs (no conclusion)" : ""}</p>
         <div class="essay-readonly eval-rewrite">${renderRewrite(evalData.rewritten_essay)}</div>
       </section>
       <p class="q-meta eval-meta">Generated ${esc(evalData.updated_at || evalData.created_at || "")}${evalData.model ? ` · ${esc(evalData.model)}` : ""}</p>`;

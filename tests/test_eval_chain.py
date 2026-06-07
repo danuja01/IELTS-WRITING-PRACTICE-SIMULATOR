@@ -41,7 +41,11 @@ class TestEvalChainGraph(unittest.TestCase):
                 lexical_resource=6.0,
                 grammatical_range=6.0,
             ),
-            overall_feedback="Good attempt with clear position.",
+            overall_feedback=[
+                "Clear position stated in the introduction.",
+                "Both parts of the question are addressed.",
+                "Some grammar errors but meaning is clear.",
+            ],
             mistakes=[],
             areas_for_improvement=["Use more varied vocabulary", "Add stronger examples"],
         )
