@@ -313,6 +313,7 @@ def _continue_rewrite(client, state: EvalState, partial: str) -> str:
     return clean_rewrite(partial.rstrip() + "\n\n" + extra.lstrip())
 
 
+def build_evaluation_graph():
     """Build LangGraph: classify → retrieve → analyse → rewrite."""
     graph = StateGraph(EvalState)
     graph.add_node("classify", classify_question)
