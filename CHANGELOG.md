@@ -1,5 +1,9 @@
 # Changelog
 
+## 5.4.1
+
+- **Evaluation UI**: Polished jumpinto-style layout — score hero, criterion cards, colour-coded wrong/correct chips, sentence comment cards, clearer spacing and panels
+
 ## 5.4.0
 
 - **Evaluation UI**: Jumpinto-style layout — Band Score, per-criterion comments, Overall Review, Optimized Composition

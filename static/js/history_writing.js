@@ -66,35 +66,68 @@
     return "off";
   }
 
+  function bandTone(score) {
+    const n = Number(score);
+    if (n >= 7) return "high";
+    if (n >= 6) return "mid";
+    return "low";
+  }
+
   function renderCorrections(corrections, title) {
     if (!corrections || !corrections.length) return "";
     const items = corrections
       .map((c) => {
         const orig = c.original || c.wrong_text || "";
         const fixed = c.corrected || c.corrected_text || "";
-        const note = c.note ? ` <span class="eval-correction-note">(${esc(c.note)})</span>` : "";
-        return `<li class="eval-correction-item"><span class="eval-correction-orig">${esc(orig)}</span> → <span class="eval-correction-fix">${esc(fixed)}</span>${note}</li>`;
+        const note = c.note ? `<p class="eval-fix-note">${esc(c.note)}</p>` : "";
+        return `
+        <li class="eval-fix-row">
+          <div class="eval-fix-pair">
+            <span class="eval-fix-chip eval-fix-wrong" title="Incorrect">${esc(orig)}</span>
+            <span class="eval-fix-arrow" aria-hidden="true">→</span>
+            <span class="eval-fix-chip eval-fix-correct" title="Corrected">${esc(fixed)}</span>
+          </div>
+          ${note}
+        </li>`;
       })
       .join("");
-    const heading = title ? `<h5 class="eval-subsection-title">${esc(title)}</h5>` : "";
-    return `${heading}<ul class="eval-correction-list">${items}</ul>`;
+    const heading = title
+      ? `<div class="eval-subsection-head"><span class="eval-subsection-dot"></span><h5 class="eval-subsection-title">${esc(title)}</h5></div>`
+      : "";
+    return `${heading}<ul class="eval-fix-list">${items}</ul>`;
   }
 
   function renderSentenceComments(comments) {
     if (!comments || !comments.length) return "";
-    return comments
-      .map((sc) => {
-        const cls = sentenceStatusClass(sc.status);
+    return `
+      <div class="eval-sentence-stack">
+        ${comments
+          .map((sc) => {
+            const cls = sentenceStatusClass(sc.status);
+            return `
+          <article class="eval-sentence-card eval-sentence-${cls}">
+            <span class="eval-sentence-badge eval-sentence-badge-${cls}">${esc(sentenceStatusLabel(sc.status))}</span>
+            <blockquote class="eval-sentence-quote">${esc(sc.sentence)}</blockquote>
+            <p class="eval-sentence-detail">${esc(sc.comment)}</p>
+          </article>`;
+          })
+          .join("")}
+      </div>`;
+  }
+
+  function renderCriterionScoresGrid(scores, taskType) {
+    const items = criterionSections(taskType)
+      .map((s) => {
+        const val = scores[s.key];
+        const tone = bandTone(val);
         return `
-        <div class="eval-sentence-comment eval-sentence-${cls}">
-          <div class="eval-sentence-head">
-            <span class="eval-sentence-label eval-sentence-label-${cls}">${esc(sentenceStatusLabel(sc.status))}</span>
-            <em class="eval-sentence-text">${esc(sc.sentence)}</em>
-          </div>
-          <p class="eval-sentence-detail">${esc(sc.comment)}</p>
+        <div class="eval-score-chip eval-score-chip-${tone}">
+          <span class="eval-score-chip-label">${esc(s.label)}</span>
+          <span class="eval-score-chip-value">${Number(val).toFixed(1)}</span>
         </div>`;
       })
       .join("");
+    return `<div class="eval-score-grid">${items}</div>`;
   }
 
   function renderCriterionSection(label, score, comment) {
@@ -102,16 +135,17 @@
     const summary = comment.summary || "";
     const corrections = renderCorrections(comment.corrections, comment.corrections_title);
     const sentences = renderSentenceComments(comment.sentence_comments);
+    const tone = bandTone(score);
     return `
-      <section class="eval-criterion-block">
-        <div class="eval-criterion-head">
+      <article class="eval-criterion-card eval-criterion-card-${tone}">
+        <header class="eval-criterion-head">
           <h4 class="eval-criterion-title">${esc(label)}</h4>
-          ${score != null ? `<span class="eval-criterion-band">${Number(score).toFixed(1)}</span>` : ""}
-        </div>
+          <span class="eval-criterion-pill eval-criterion-pill-${tone}">${Number(score).toFixed(1)}</span>
+        </header>
         <p class="eval-criterion-summary">${esc(summary)}</p>
         ${sentences}
         ${corrections}
-      </section>`;
+      </article>`;
   }
 
   function renderLegacyMistake(m) {
@@ -128,35 +162,67 @@
       </li>`;
   }
 
+  function formatComposition(text) {
+    if (!text) return "";
+    return esc(text)
+      .split(/\n\n+/)
+      .map((p) => `<p class="eval-composition-p">${p}</p>`)
+      .join("");
+  }
+
   function renderEvaluationV2(evalData, taskType) {
     const scores = evalData.criterion_scores || {};
+    const overallTone = bandTone(evalData.band_score);
     const sections = criterionSections(taskType)
       .map((s) => renderCriterionSection(s.label, scores[s.key], evalData[s.field]))
       .join("");
 
     const topCorrections =
       (taskType || "task2") === "task2" && evalData.corrections && evalData.corrections.length
-        ? `<section class="eval-section"><h4>Corrections</h4>${renderCorrections(evalData.corrections)}</section>`
+        ? `<section class="eval-panel eval-panel-corrections">
+            <h4 class="eval-panel-title">Corrections</h4>
+            <p class="eval-panel-lead">Quick fixes for spelling, grammar, and word choice.</p>
+            ${renderCorrections(evalData.corrections)}
+          </section>`
         : "";
 
     const composition = evalData.optimized_composition || evalData.rewritten_essay || "";
+    const subtype = evalData.question_subtype
+      ? `<span class="eval-meta-tag">${esc(evalData.question_subtype)}</span>`
+      : "";
 
     return `
-      <div class="eval-band-box">
-        <span class="eval-band-box-label">Band Score</span>
-        <span class="eval-band-box-score">${Number(evalData.band_score).toFixed(1)}</span>
-      </div>
-      ${topCorrections}
-      <div class="eval-criteria-stack">${sections}</div>
-      <section class="eval-section eval-overall-review">
-        <h4>Overall Review</h4>
-        <p class="eval-review-text">${esc(evalData.overall_review || "")}</p>
-      </section>
-      <section class="eval-section">
-        <h4>Optimized Composition</h4>
-        <div class="essay-readonly eval-optimized">${esc(composition)}</div>
-      </section>
-      <p class="q-meta eval-meta">Generated ${esc(evalData.updated_at || evalData.created_at || "")}${evalData.model ? ` · ${esc(evalData.model)}` : ""}${evalData.question_subtype ? ` · ${esc(evalData.question_subtype)}` : ""}</p>`;
+      <div class="eval-report">
+        <header class="eval-hero eval-hero-${overallTone}">
+          <p class="eval-hero-label">Band Score</p>
+          <p class="eval-hero-score">${Number(evalData.band_score).toFixed(1)}</p>
+          ${renderCriterionScoresGrid(scores, taskType)}
+        </header>
+
+        ${topCorrections}
+
+        <section class="eval-panel">
+          <h4 class="eval-panel-title">Comments</h4>
+          <p class="eval-panel-lead">Detailed feedback for each IELTS marking criterion.</p>
+          <div class="eval-criteria-stack">${sections}</div>
+        </section>
+
+        <section class="eval-panel eval-panel-review">
+          <h4 class="eval-panel-title">Overall Review</h4>
+          <p class="eval-review-text">${esc(evalData.overall_review || "")}</p>
+        </section>
+
+        <section class="eval-panel eval-panel-composition">
+          <h4 class="eval-panel-title">Optimized Composition</h4>
+          <p class="eval-panel-lead">A polished model answer at target band level.</p>
+          <div class="eval-composition-body">${formatComposition(composition)}</div>
+        </section>
+
+        <footer class="eval-footer">
+          ${subtype}
+          <span class="eval-meta-line">Generated ${esc(evalData.updated_at || evalData.created_at || "")}${evalData.model ? ` · ${esc(evalData.model)}` : ""}</span>
+        </footer>
+      </div>`;
   }
 
   function renderEvaluationV1(evalData, taskType) {
