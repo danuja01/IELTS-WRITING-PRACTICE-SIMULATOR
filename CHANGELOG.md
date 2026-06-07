@@ -1,5 +1,10 @@
 # Changelog
 
+## 5.3.1
+
+- **Fix**: Restore missing `build_evaluation_graph()` (evaluation failed at runtime)
+- **Tests**: Add unit tests for graph build and mocked evaluation chain
+
 ## 5.3.0
 
 - **AI evaluation**: LangGraph pipeline with automatic question-type classification (Task 1 visual types, Task 2 essay types)
