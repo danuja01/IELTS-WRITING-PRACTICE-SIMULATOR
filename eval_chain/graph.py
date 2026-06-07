@@ -151,7 +151,8 @@ Key issues to fix:
 Focus areas:
 {improvements}
 
-Examiner summary: {analysis.overall_feedback}
+Examiner summary:
+{chr(10).join(f"- {p}" for p in analysis.overall_feedback)}
 
 {closing}"""
 

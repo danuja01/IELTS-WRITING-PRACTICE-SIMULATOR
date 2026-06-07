@@ -35,43 +35,41 @@ def _format_key_data(items: list[str]) -> str:
     return "\n".join(f"- {item}" for item in items)
 
 
+def _analysis_output_rules(categories: str) -> str:
+    return f"""OUTPUT FORMAT:
+- overall_feedback: 4–6 bullet points (strengths + weaknesses). One point per line. No paragraphs.
+- mistakes: only genuine errors worth fixing. Skip nitpicks.
+  • wrong_text / corrected_text: the smallest wrong phrase and its fix (e.g. "competetion" → "competition"), NOT whole sentences unless necessary.
+  • Do NOT flag Task Response issues that apply to a different essay type than the one classified.
+- Score bands first, then list mistakes for feedback.
+- Categories: {categories}."""
+
+
+def _rewrite_highlight_rules() -> str:
+    return """HIGHLIGHTING (<<word>>):
+- Wrap ONLY the specific word or short phrase that changed. Example: "drives <<healthy>> competition" not "<<drives healthy competition among businesses>>".
+- Grammar fixes: highlight just the corrected word(s), not the whole sentence.
+- Aim for under 20 highlights total. Most sentences should have no highlights."""
+
+
 def analysis_system_prompt_task1(
     classification: Task1Classification,
     rag_context: str,
 ) -> str:
     type_label = TASK1_TYPE_LABELS[classification.visual_type]
     categories = ", ".join(MISTAKE_CATEGORIES_TASK1)
-    dynamic_note = (
-        "This is a DYNAMIC visual — expect trend language (rose, fell, fluctuated)."
-        if classification.is_dynamic
-        else "This is a STATIC visual — expect comparison language, NOT inappropriate trend verbs."
-    )
-    return f"""You are an IELTS Academic Writing Task 1 examiner.
+    return f"""You are a fair IELTS Task 1 examiner marking a **{type_label}** report.
 
-CLASSIFIED VISUAL TYPE: **{type_label}**
-{classification.reasoning}
+Use the reference material for this visual type. Be balanced — clear structure with minor language errors should score around Band 6.
 
-Classification details:
-- Dynamic (time-based): {classification.is_dynamic}
-- Time period: {classification.time_period or "N/A"}
-- Tense guidance: {classification.tense_guidance}
-- {dynamic_note}
+Type: {type_label} | Dynamic: {classification.is_dynamic} | Tenses: {classification.tense_guidance}
 
-Key data/features the report should cover:
-{_format_key_data(classification.key_data_needed)}
-
-Apply ONLY the **{type_label}** evaluation framework below. Do not use generic graph advice — maps need spatial/change language, line graphs need trends, pie charts need proportions, etc.
-
-REFERENCE MATERIAL:
+REFERENCE:
 {rag_context}
 
-SCORING WORKFLOW:
-1. Score Task Achievement against **{type_label}** expectations (overview, key features, data accuracy for this visual type).
-2. Score CC, LR, GRA using the band descriptors in the reference material.
-3. Assign bands FIRST holistically; list mistakes SECOND for teaching feedback.
-4. Mistake categories: {categories}.
+{_analysis_output_rules(categories)}
 
-This is a REPORT — no opinion, no conclusion paragraph. Do NOT rewrite the student's report."""
+This is a report — no opinion, no conclusion. Do not rewrite."""
 
 
 def analysis_system_prompt_task2(
@@ -80,118 +78,87 @@ def analysis_system_prompt_task2(
 ) -> str:
     type_label = TASK2_TYPE_LABELS[classification.essay_type]
     categories = ", ".join(MISTAKE_CATEGORIES_TASK2)
-    parts = _format_key_data(classification.prompt_parts)
-    opinion_note = (
-        "The student MUST state a clear personal opinion."
-        if classification.requires_opinion
-        else "Personal opinion is not required unless the prompt asks for it."
-    )
-    return f"""You are an IELTS Academic Writing Task 2 examiner.
+    fairness = _task2_fairness_note(classification)
+    return f"""You are a fair IELTS Task 2 examiner marking a **{type_label}** essay.
 
-CLASSIFIED ESSAY TYPE: **{type_label}**
-{classification.reasoning}
+Prompt parts to answer: {_format_key_data(classification.prompt_parts)}
 
-Prompt parts that must be answered:
-{parts}
+{fairness}
 
-Structure guidance: {classification.structure_guidance}
-{opinion_note}
+Use the reference material for this essay type only. Be balanced — a clear answer to the actual question with language errors should score around Band 6.
 
-Apply ONLY the **{type_label}** Task Response framework below — opinion essays need a clear stance; discussion essays need both views; advantage/disadvantage essays need both sides (and a verdict if asked); problem/solution needs linked solutions; two-part questions need both parts developed.
-
-REFERENCE MATERIAL:
+REFERENCE:
 {rag_context}
 
-SCORING WORKFLOW:
-1. Score Task Response against **{type_label}** expectations.
-2. Score CC, LR, GRA using the band descriptors in the reference material.
-3. Assign bands FIRST; list mistakes SECOND for feedback.
-4. Mistake categories: {categories}.
+{_analysis_output_rules(categories)}
 
-Do NOT rewrite the essay."""
+Do not rewrite."""
+
+
+def _task2_fairness_note(classification: Task2Classification) -> str:
+    t = classification.essay_type
+    if t == Task2EssayType.TWO_PART:
+        return (
+            "FAIRNESS: Two-part prompts (e.g. 'Why?' + 'positive or negative?') need both parts answered. "
+            "A clear one-sided opinion on the second part is fine — do NOT require a separate disadvantages "
+            "paragraph or both-sides discussion unless the prompt explicitly asks for both views."
+        )
+    if t == Task2EssayType.OPINION:
+        return (
+            "FAIRNESS: Opinion essays need a clear stance. A brief concession ('while there are drawbacks') "
+            "is fine — do NOT require equal coverage of both sides."
+        )
+    if t == Task2EssayType.DISCUSSION:
+        return "FAIRNESS: Both views must be presented before the writer's opinion."
+    if t == Task2EssayType.ADVANTAGES_DISADVANTAGES:
+        return (
+            "FAIRNESS: Require both sides only when the prompt asks for advantages AND disadvantages, "
+            "or asks which outweighs. A 'positive development' opinion question does not need a full disadvantages body."
+        )
+    return "FAIRNESS: Score against what this prompt actually asks, not a generic essay template."
 
 
 def rewrite_system_prompt_task1(classification: Task1Classification) -> str:
     type_label = TASK1_TYPE_LABELS[classification.visual_type]
-    extra = ""
-    if classification.visual_type == Task1VisualType.MAP:
-        extra = "\n- Use passive voice and location language (north of, adjacent to).\n- Do NOT use trend verbs (rose/fell)."
-    elif classification.visual_type == Task1VisualType.PROCESS_DIAGRAM:
-        extra = "\n- Use present simple passive for stages (is harvested, is heated).\n- Cover all major stages in correct order."
-    elif classification.visual_type == Task1VisualType.LINE_GRAPH:
-        extra = "\n- Emphasise trends and line comparisons.\n- Use appropriate past tenses for historical data."
-    elif classification.visual_type == Task1VisualType.BAR_CHART:
-        extra = (
-            "\n- Emphasise rankings and category comparisons."
-            + ("\n- Dynamic bar chart: trend language allowed." if classification.is_dynamic else "\n- Static bar chart: comparison language only, no rise/fall.")
-        )
-    elif classification.visual_type == Task1VisualType.PIE_CHART:
-        extra = "\n- Use proportion/share language.\n- Highlight dominant and minor segments."
-    elif classification.visual_type in (Task1VisualType.MIXED_CHARTS, Task1VisualType.MULTIPLE_DIAGRAMS):
-        extra = "\n- Balance coverage across all visuals/diagrams.\n- Overview must reference each visual."
+    return f"""Write a Band 7.5+ **{type_label}** Task 1 report.
 
-    return f"""You are an expert IELTS Task 1 coach writing a Band 7.5+ **{type_label}** report.
+4 paragraphs: intro → overview → body 1 → body 2. No conclusion. 150–180 words.
+Use chart data accurately. Tenses: {classification.tense_guidance}
 
-Tense guidance: {classification.tense_guidance}
-
-STRUCTURE (exactly 4 paragraphs — NO conclusion):
-1. Introduction — paraphrase the task (no data)
-2. Overview — main trends/changes/comparisons (no specific figures)
-3. Body 1 — key features group 1 with selective accurate data
-4. Body 2 — key features group 2 with selective accurate data
-{extra}
-
-RULES:
-- Read data from the chart image — never invent figures.
-- Target **150–180 words**. Be concise.
-- Wrap improved words/phrases in <<double angle brackets>>.
-- Plain text, blank lines between paragraphs. No HTML."""
+{_rewrite_highlight_rules()}
+Plain text, blank lines between paragraphs."""
 
 
 def rewrite_system_prompt_task2(classification: Task2Classification) -> str:
     type_label = TASK2_TYPE_LABELS[classification.essay_type]
-    return f"""You are an expert IELTS Task 2 coach writing a Band 7.5+ **{type_label}** essay.
+    return f"""Write a Band 7.5+ **{type_label}** Task 2 essay.
 
-Structure guidance: {classification.structure_guidance}
+Answer: {_format_key_data(classification.prompt_parts)}
+Structure: {classification.structure_guidance}
+{"State a clear opinion." if classification.requires_opinion else ""}
 
-RULES:
-- Answer every prompt part: {_format_key_data(classification.prompt_parts)}
-- {"Include a clear, consistent opinion." if classification.requires_opinion else "Address all required parts of the question."}
-- Introduction with thesis → developed body paragraph(s) → conclusion.
-- Target length per user message (typically 280+ words).
-- Wrap improved words/phrases in <<double angle brackets>>.
-- Plain text, blank lines between paragraphs. No HTML."""
+Preserve the student's argument where it is reasonable. 280+ words.
+
+{_rewrite_highlight_rules()}
+Plain text, blank lines between paragraphs."""
 
 
 def classification_system_prompt_task1() -> str:
-    return """You classify IELTS Academic Writing Task 1 questions by analysing the attached chart/image and the question prompt.
+    return """Classify the Task 1 visual from the image and prompt.
 
-Identify the primary visual type from:
-- line_graph — trends over time with connected lines
-- bar_chart — categorical comparisons with bars (may be static or over time)
-- pie_chart — proportions/percentages of a whole
-- table — rows/columns of data
-- map — spatial layout, before/after location changes
-- process_diagram — stages of a process with arrows
-- mixed_charts — two different chart types in one task
-- multiple_diagrams — two or more similar diagrams (e.g. two maps)
+Types: line_graph, bar_chart, pie_chart, table, map, process_diagram, mixed_charts, multiple_diagrams.
 
-Also determine:
-- is_dynamic: true if data changes over a time axis
-- time_period: dates/years shown
-- key_data_needed: main figures, trends, or features visible
-- tense_guidance: which tenses to use in intro/overview/body
-
-Be precise — a map is NOT a line graph; a process is NOT a bar chart."""
+Return: visual_type, is_dynamic, time_period, key_data_needed, tense_guidance, reasoning."""
 
 
 def classification_system_prompt_task2() -> str:
-    return """You classify IELTS Academic Writing Task 2 essay prompts into exactly one type:
+    return """Classify the Task 2 prompt into one type:
 
 - opinion — agree/disagree, to what extent
 - discussion — discuss both views and give your opinion
-- advantages_disadvantages — advantages/disadvantages, outweigh, positive/negative development
+- advantages_disadvantages — explicit advantages/disadvantages or outweigh
 - problem_solution — causes/problems and solutions
-- two_part — two distinct questions requiring separate answers
+- two_part — two questions (e.g. "Why is this?" + "Is it positive or negative?")
 
-Extract prompt_parts (each question/part that must be answered), whether an opinion is required, and recommended paragraph structure."""
+For two_part: "positive or negative development" accepts a clear one-sided answer.
+Return: essay_type, requires_opinion, prompt_parts, structure_guidance, reasoning."""

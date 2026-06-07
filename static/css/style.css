@@ -803,6 +803,16 @@ body.practice-page {
   white-space: pre-wrap;
 }
 
+.eval-feedback-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  line-height: 1.55;
+}
+
+.eval-feedback-list li {
+  margin-bottom: 0.4rem;
+}
+
 .eval-mistake-list,
 .eval-improve-list {
   margin: 0;
@@ -837,6 +847,17 @@ body.practice-page {
   background: var(--danger-bg);
   padding: 0.35rem 0.5rem;
   border-radius: 2px;
+}
+
+.eval-wrong-text {
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: var(--danger);
+}
+
+.eval-wrong-inline {
+  color: var(--danger);
+  font-weight: 700;
 }
 
 .eval-correct {
