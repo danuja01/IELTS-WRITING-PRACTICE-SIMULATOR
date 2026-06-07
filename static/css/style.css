@@ -787,6 +787,173 @@ body.practice-page {
   font-variant-numeric: tabular-nums;
 }
 
+.eval-band-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 1.25rem 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.eval-band-box-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.35rem;
+}
+
+.eval-band-box-score {
+  font-size: 2.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.eval-criteria-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.eval-criterion-block {
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+
+.eval-criterion-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.6rem;
+}
+
+.eval-criterion-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.eval-criterion-band {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.eval-criterion-summary {
+  margin: 0 0 0.75rem;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.eval-subsection-title {
+  margin: 0.75rem 0 0.4rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #9a7b4f;
+}
+
+.eval-correction-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.eval-correction-item {
+  margin: 0.3rem 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  font-family: var(--font-write);
+}
+
+.eval-correction-orig {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.eval-correction-fix {
+  color: var(--ok);
+  font-weight: 600;
+}
+
+.eval-correction-note {
+  color: var(--muted);
+  font-weight: normal;
+}
+
+.eval-sentence-comment {
+  margin: 0.65rem 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 4px;
+}
+
+.eval-sentence-hit {
+  background: #ecfdf3;
+}
+
+.eval-sentence-slight {
+  background: #fff8eb;
+}
+
+.eval-sentence-off {
+  background: #fef2f2;
+}
+
+.eval-sentence-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.eval-sentence-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.eval-sentence-label-hit {
+  color: #15803d;
+}
+
+.eval-sentence-label-slight {
+  color: #b45309;
+}
+
+.eval-sentence-label-off {
+  color: #b91c1c;
+}
+
+.eval-sentence-text {
+  font-style: italic;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.eval-sentence-detail {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.eval-overall-review .eval-review-text {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.eval-optimized {
+  white-space: pre-wrap;
+  line-height: 1.6;
+  font-family: var(--font-write);
+}
+
 .eval-section {
   margin-top: 1.25rem;
 }

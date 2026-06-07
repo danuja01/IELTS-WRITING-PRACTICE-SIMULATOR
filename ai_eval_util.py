@@ -1,4 +1,4 @@
-"""Lightweight RAG + OpenAI evaluation for IELTS writing attempts (LangGraph pipeline)."""
+"""IELTS writing evaluation via LangGraph pipeline."""
 from __future__ import annotations
 
 from eval_chain.graph import (
@@ -9,8 +9,10 @@ from eval_chain.graph import (
 )
 from eval_chain.utils import (
     ChartImage,
+    CorrectionItem,
+    CriterionComment,
     CriterionScores,
-    MistakeItem,
+    SentenceComment,
     WritingEvaluationAnalysis,
     WritingEvaluationResult,
     WritingRewriteResult,
@@ -22,53 +24,16 @@ __all__ = [
     "DEFAULT_MODEL",
     "REWRITE_MODEL",
     "ChartImage",
+    "CorrectionItem",
+    "CriterionComment",
     "CriterionScores",
-    "MistakeItem",
+    "SentenceComment",
     "WritingEvaluationAnalysis",
     "WritingEvaluationResult",
     "WritingRewriteResult",
     "evaluate_writing",
     "evaluation_to_dict",
-    "retrieve_rag_context",
 ]
-
-MISTAKE_CATEGORIES_TASK2 = (
-    "Grammar",
-    "Spelling",
-    "Vocabulary",
-    "Word choice",
-    "Sentence structure",
-    "Awkward phrasing",
-    "Cohesion",
-    "Punctuation",
-    "Task response",
-    "Other",
-)
-
-MISTAKE_CATEGORIES_TASK1 = (
-    "Grammar",
-    "Spelling",
-    "Vocabulary",
-    "Word choice",
-    "Sentence structure",
-    "Awkward phrasing",
-    "Cohesion",
-    "Punctuation",
-    "Task achievement",
-    "Data accuracy",
-    "Overview",
-    "Other",
-)
-
-
-def retrieve_rag_context(task_type: str) -> str:
-    """Legacy hook — RAG is now loaded per question subtype inside the LangGraph chain."""
-    from eval_chain.retriever import retrieve_task1_context, retrieve_task2_context
-    from eval_chain.types import Task1VisualType, Task2EssayType
-
-    if (task_type or "task2").lower() == "task1":
-        return retrieve_task1_context(Task1VisualType.LINE_GRAPH)
-    return retrieve_task2_context(Task2EssayType.OPINION)
 
 
 def evaluate_writing(
@@ -104,9 +69,4 @@ def evaluate_writing(
 
 
 def evaluation_to_dict(result: WritingEvaluationResult, *, model: str) -> dict:
-    data = _base_evaluation_to_dict(result, model=model)
-    if result.question_subtype:
-        data["question_subtype"] = result.question_subtype
-    if result.classification_reasoning:
-        data["classification_reasoning"] = result.classification_reasoning
-    return data
+    return _base_evaluation_to_dict(result, model=model)

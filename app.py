@@ -376,24 +376,43 @@ def _evaluation_json(row):
     if not row:
         return None
     d = dict(row)
-    for field, key in (
-        ("criterion_scores_json", "criterion_scores"),
-        ("mistakes_json", "mistakes"),
-        ("areas_for_improvement_json", "areas_for_improvement"),
-    ):
-        raw = d.pop(field, None)
+    raw_scores = d.pop("criterion_scores_json", None)
+    raw_mistakes = d.pop("mistakes_json", None)
+    d.pop("areas_for_improvement_json", None)
+
+    try:
+        d["criterion_scores"] = json.loads(raw_scores) if isinstance(raw_scores, str) else (raw_scores or {})
+    except json.JSONDecodeError:
+        d["criterion_scores"] = {}
+
+    structured = None
+    if isinstance(raw_mistakes, str):
         try:
-            d[key] = json.loads(raw) if isinstance(raw, str) else (raw or [])
-        except json.JSONDecodeError:
-            d[key] = [] if key != "criterion_scores" else {}
-    raw_feedback = d.get("overall_feedback")
-    if isinstance(raw_feedback, str) and raw_feedback.strip().startswith("["):
-        try:
-            parsed = json.loads(raw_feedback)
-            if isinstance(parsed, list):
-                d["overall_feedback"] = parsed
+            parsed = json.loads(raw_mistakes)
+            if isinstance(parsed, dict) and parsed.get("format_version") == 2:
+                structured = parsed
         except json.JSONDecodeError:
             pass
+
+    if structured:
+        d["format_version"] = 2
+        d["overall_review"] = d.get("overall_feedback") or ""
+        d["task_comment"] = structured.get("task_comment") or {}
+        d["coherence_comment"] = structured.get("coherence_comment") or {}
+        d["lexical_comment"] = structured.get("lexical_comment") or {}
+        d["grammar_comment"] = structured.get("grammar_comment") or {}
+        d["corrections"] = structured.get("corrections") or []
+        d["optimized_composition"] = d.get("rewritten_essay") or ""
+        if structured.get("question_subtype"):
+            d["question_subtype"] = structured["question_subtype"]
+    else:
+        d["format_version"] = 1
+        try:
+            d["mistakes"] = json.loads(raw_mistakes) if isinstance(raw_mistakes, str) else (raw_mistakes or [])
+        except json.JSONDecodeError:
+            d["mistakes"] = []
+        d["overall_review"] = d.get("overall_feedback") or ""
+
     return d
 
 
@@ -1562,9 +1581,32 @@ def get_writing_evaluation(wid):
     return jsonify(_evaluation_json(row))
 
 
+def _evaluation_storage_fields(payload: dict) -> tuple:
+    """Map API payload to DB columns (supports v1 and v2 formats)."""
+    if payload.get("format_version") == 2:
+        overall = payload.get("overall_review") or ""
+        structured = {
+            "format_version": 2,
+            "task_comment": payload.get("task_comment") or {},
+            "coherence_comment": payload.get("coherence_comment") or {},
+            "lexical_comment": payload.get("lexical_comment") or {},
+            "grammar_comment": payload.get("grammar_comment") or {},
+            "corrections": payload.get("corrections") or [],
+            "question_subtype": payload.get("question_subtype") or "",
+        }
+        return overall, json.dumps(structured), "[]"
+    overall = payload.get("overall_feedback") or payload.get("overall_review") or ""
+    if isinstance(overall, list):
+        overall = json.dumps(overall)
+    mistakes = payload.get("mistakes") or []
+    improvements = payload.get("areas_for_improvement") or []
+    return overall, json.dumps(mistakes), json.dumps(improvements)
+
+
 def _save_evaluation(wid: int, user_id: int, payload: dict, model: str):
     ts = now_iso()
     db = get_db()
+    overall, mistakes_json, improvements_json = _evaluation_storage_fields(payload)
     existing = db.execute(
         "SELECT id FROM writing_evaluations WHERE writing_id = ?",
         (wid,),
@@ -1579,11 +1621,9 @@ def _save_evaluation(wid: int, user_id: int, payload: dict, model: str):
             (
                 payload["band_score"],
                 json.dumps(payload["criterion_scores"]),
-                json.dumps(payload["overall_feedback"])
-                if isinstance(payload.get("overall_feedback"), list)
-                else payload["overall_feedback"],
-                json.dumps(payload["mistakes"]),
-                json.dumps(payload["areas_for_improvement"]),
+                overall,
+                mistakes_json,
+                improvements_json,
                 payload["rewritten_essay"],
                 model,
                 ts,
@@ -1602,11 +1642,9 @@ def _save_evaluation(wid: int, user_id: int, payload: dict, model: str):
                 user_id,
                 payload["band_score"],
                 json.dumps(payload["criterion_scores"]),
-                json.dumps(payload["overall_feedback"])
-                if isinstance(payload.get("overall_feedback"), list)
-                else payload["overall_feedback"],
-                json.dumps(payload["mistakes"]),
-                json.dumps(payload["areas_for_improvement"]),
+                overall,
+                mistakes_json,
+                improvements_json,
                 payload["rewritten_essay"],
                 model,
                 ts,

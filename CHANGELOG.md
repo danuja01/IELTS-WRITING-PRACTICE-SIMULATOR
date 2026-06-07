@@ -1,5 +1,13 @@
 # Changelog
 
+## 5.4.0
+
+- **Evaluation UI**: Jumpinto-style layout — Band Score, per-criterion comments, Overall Review, Optimized Composition
+- **Task 1**: Sentence-level feedback (Accurately Hit / Slightly Off Key Points) under Task Achievement
+- **Task 2**: Top-level Corrections list plus per-criterion comment sections
+- **Scoring**: Fairer, simpler prompts — minor errors no longer over-penalise clear responses
+- **Optimized Composition**: Clean model answer without green highlight markup
+
 ## 5.3.2
 
 - **Evaluation output**: Overall feedback is now structured bullet points
