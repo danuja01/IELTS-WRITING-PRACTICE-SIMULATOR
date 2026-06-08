@@ -808,10 +808,6 @@ body.practice-page {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
-.eval-hero-high { border-top: 4px solid #027a48; }
-.eval-hero-mid { border-top: 4px solid #003366; }
-.eval-hero-low { border-top: 4px solid #b45309; }
-
 .eval-hero-label {
   margin: 0 0 0.25rem;
   font-size: 0.8rem;
@@ -918,10 +914,6 @@ body.practice-page {
   border-radius: 10px;
   padding: 1rem 1.05rem;
 }
-
-.eval-criterion-card-high { border-left: 3px solid #027a48; }
-.eval-criterion-card-mid { border-left: 3px solid #003366; }
-.eval-criterion-card-low { border-left: 3px solid #b45309; }
 
 .eval-criterion-head {
   display: flex;
