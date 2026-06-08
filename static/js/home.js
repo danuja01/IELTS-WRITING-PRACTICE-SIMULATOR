@@ -138,6 +138,11 @@
     }
   }
 
+
+  function taskLabel(taskType) {
+    return (taskType || "task2").toLowerCase() === "task1" ? "Task 1" : "Task 2";
+  }
+
   function fmtMs(ms) {
     if (ms == null) return "-";
     const sec = Math.floor(ms / 1000);
@@ -291,8 +296,7 @@
             <li class="${rowCls}">
               <div class="q-row-main">
                 <div class="q-row-title">
-                  <span class="task-pill">${esc((q.task_type || "task2").toUpperCase())}</span>
-                  <strong>${esc(q.title)}</strong>
+                  <span class="task-pill">${esc(taskLabel(q.task_type))}</span>                  <strong>${esc(q.title)}</strong>
                 </div>
                 <div class="q-meta">${q.has_image ? "Chart · " : ""}${fmtDate(q.created_at)}${privacyLine}${ownerLine}${forkLine}</div>
               </div>
@@ -591,8 +595,11 @@
         (w) => `
       <li>
         <div>
-          <strong>${esc(w.question_title || "Question")}</strong>
-          <div class="q-meta">${fmtDate(w.finished_at)} · ${w.final_words || 0} words · ${fmtMs(w.elapsed_ms)}</div>
+          <div class="q-row-title">
+            <span class="task-pill">${esc(taskLabel(w.question_task_type || w.task_type))}</span>
+            <strong>${esc(w.question_title || "Question")}</strong>
+          </div>         
+        <div class="q-meta">${fmtDate(w.finished_at)} · ${w.final_words || 0} words · ${fmtMs(w.elapsed_ms)}</div>
         </div>
         <a class="btn secondary" href="/history/writing/${w.id}">View</a>
       </li>`

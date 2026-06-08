@@ -1373,8 +1373,7 @@ def list_writings():
            ORDER BY w.finished_at DESC LIMIT 10""",
         (session["user_id"],),
     ).fetchall()
-    return jsonify([_writing_json(r) for r in rows])
-
+    return jsonify([_writing_detail_json(r) for r in rows])
 
 @app.route("/api/writings/by-question/<int:qid>", methods=["GET"])
 @student_required
