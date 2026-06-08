@@ -808,6 +808,10 @@ body.practice-page {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
+.eval-hero-high { border-top: 4px solid #027a48; }
+.eval-hero-mid { border-top: 4px solid #003366; }
+.eval-hero-low { border-top: 4px solid #b45309; }
+
 .eval-hero-label {
   margin: 0 0 0.25rem;
   font-size: 0.8rem;
@@ -914,6 +918,10 @@ body.practice-page {
   border-radius: 10px;
   padding: 1rem 1.05rem;
 }
+
+.eval-criterion-card-high { border-left: 3px solid #027a48; }
+.eval-criterion-card-mid { border-left: 3px solid #003366; }
+.eval-criterion-card-low { border-left: 3px solid #b45309; }
 
 .eval-criterion-head {
   display: flex;
@@ -1039,10 +1047,44 @@ body.practice-page {
   line-height: 1.4;
 }
 
+.eval-sentence-stack-wrap {
+  margin-top: 0.25rem;
+}
+
+.eval-sentence-stack-title {
+  margin: 0 0 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 .eval-sentence-stack {
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
+}
+
+.eval-sentence-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.45rem;
+}
+
+.eval-paragraph-label {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background: #eff6ff;
+  color: var(--accent);
+  border: 1px solid #bfdbfe;
 }
 
 .eval-sentence-card {

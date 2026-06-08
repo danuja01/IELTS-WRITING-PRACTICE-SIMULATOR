@@ -35,8 +35,15 @@ class SentenceComment(BaseModel):
         ...,
         description="accurately_hit = good; slightly_off = minor issues; off_key = significant problem",
     )
-    sentence: str = Field(..., description="Exact sentence from the student's writing")
+    sentence: str = Field(
+        ...,
+        description="Key sentence or opening line from the sentence/paragraph being discussed",
+    )
     comment: str = Field(..., description="Brief constructive explanation")
+    label: str = Field(
+        default="",
+        description='Optional label e.g. "Introduction", "Body paragraph 1", "Conclusion" (Task 2)',
+    )
 
 
 class CriterionComment(BaseModel):
@@ -61,7 +68,7 @@ class WritingEvaluationAnalysis(BaseModel):
     grammar_comment: CriterionComment
     corrections: list[CorrectionItem] = Field(
         default_factory=list,
-        description="Task 2: top corrections list shown before criterion comments",
+        description="Leave empty — put spelling/grammar fixes inside lexical_comment and grammar_comment",
     )
     overall_review: str = Field(
         ...,
