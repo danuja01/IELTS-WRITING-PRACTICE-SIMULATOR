@@ -27,13 +27,20 @@ def _sample_analysis() -> WritingEvaluationAnalysis:
             grammatical_range=6.0,
         ),
         task_comment=CriterionComment(
-            summary="The response covers all main stages with a clear overview.",
+            summary="The essay addresses the prompt with a clear position throughout.",
             sentence_comments=[
                 SentenceComment(
                     status="accurately_hit",
-                    sentence="Overall, the process has seven stages.",
-                    comment="Clear overview of the process.",
-                )
+                    label="Introduction",
+                    sentence="I strongly believe that technology has improved modern life.",
+                    comment="Clear thesis that directly answers the prompt.",
+                ),
+                SentenceComment(
+                    status="slightly_off",
+                    label="Body paragraph 1",
+                    sentence="Firstly, technology helps people communicate more easily.",
+                    comment="Relevant point but could use a more specific example.",
+                ),
             ],
         ),
         coherence_comment=CriterionComment(

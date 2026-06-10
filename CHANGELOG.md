@@ -1,5 +1,10 @@
 # Changelog
 
+## 5.4.2
+
+- **Task 2 evaluation**: Same UI as Task 1 — paragraph-level feedback cards under Task Response (Introduction, Body 1, etc.)
+- **Unified layout**: Corrections live inside criterion sections for both tasks; task-aware status labels (Strong Response / Could Improve)
+
 ## 5.4.1
 
 - **Evaluation UI**: Polished jumpinto-style layout — score hero, criterion cards, colour-coded wrong/correct chips, sentence comment cards, clearer spacing and panels

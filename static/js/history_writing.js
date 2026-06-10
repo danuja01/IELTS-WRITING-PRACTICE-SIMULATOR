@@ -54,10 +54,15 @@
     ];
   }
 
-  function sentenceStatusLabel(status) {
-    if (status === "accurately_hit") return "Accurately Hit Key Points";
-    if (status === "slightly_off") return "Slightly Off Key Points";
-    return "Off Key Points";
+  function sentenceStatusLabel(status, taskType) {
+    const isTask1 = (taskType || "task2") === "task1";
+    if (status === "accurately_hit") {
+      return isTask1 ? "Accurately Hit Key Points" : "Strong Response";
+    }
+    if (status === "slightly_off") {
+      return isTask1 ? "Slightly Off Key Points" : "Could Improve";
+    }
+    return isTask1 ? "Off Key Points" : "Needs Attention";
   }
 
   function sentenceStatusClass(status) {
@@ -97,21 +102,34 @@
     return `${heading}<ul class="eval-fix-list">${items}</ul>`;
   }
 
-  function renderSentenceComments(comments) {
+  function renderSentenceComments(comments, taskType) {
     if (!comments || !comments.length) return "";
+    const isTask2 = (taskType || "task2") === "task2";
+    const stackTitle = isTask2
+      ? `<p class="eval-sentence-stack-title">Paragraph-by-paragraph feedback</p>`
+      : `<p class="eval-sentence-stack-title">Sentence-by-sentence feedback</p>`;
     return `
-      <div class="eval-sentence-stack">
+      <div class="eval-sentence-stack-wrap">
+        ${stackTitle}
+        <div class="eval-sentence-stack">
         ${comments
           .map((sc) => {
             const cls = sentenceStatusClass(sc.status);
+            const paraLabel = sc.label
+              ? `<span class="eval-paragraph-label">${esc(sc.label)}</span>`
+              : "";
             return `
           <article class="eval-sentence-card eval-sentence-${cls}">
-            <span class="eval-sentence-badge eval-sentence-badge-${cls}">${esc(sentenceStatusLabel(sc.status))}</span>
+            <div class="eval-sentence-badges">
+              ${paraLabel}
+              <span class="eval-sentence-badge eval-sentence-badge-${cls}">${esc(sentenceStatusLabel(sc.status, taskType))}</span>
+            </div>
             <blockquote class="eval-sentence-quote">${esc(sc.sentence)}</blockquote>
             <p class="eval-sentence-detail">${esc(sc.comment)}</p>
           </article>`;
           })
           .join("")}
+        </div>
       </div>`;
   }
 
@@ -130,11 +148,11 @@
     return `<div class="eval-score-grid">${items}</div>`;
   }
 
-  function renderCriterionSection(label, score, comment) {
+  function renderCriterionSection(label, score, comment, taskType) {
     if (!comment) return "";
     const summary = comment.summary || "";
     const corrections = renderCorrections(comment.corrections, comment.corrections_title);
-    const sentences = renderSentenceComments(comment.sentence_comments);
+    const sentences = renderSentenceComments(comment.sentence_comments, taskType);
     const tone = bandTone(score);
     return `
       <article class="eval-criterion-card eval-criterion-card-${tone}">
@@ -174,19 +192,14 @@
     const scores = evalData.criterion_scores || {};
     const overallTone = bandTone(evalData.band_score);
     const sections = criterionSections(taskType)
-      .map((s) => renderCriterionSection(s.label, scores[s.key], evalData[s.field]))
+      .map((s) => renderCriterionSection(s.label, scores[s.key], evalData[s.field], taskType))
       .join("");
 
-    const topCorrections =
-      (taskType || "task2") === "task2" && evalData.corrections && evalData.corrections.length
-        ? `<section class="eval-panel eval-panel-corrections">
-            <h4 class="eval-panel-title">Corrections</h4>
-            <p class="eval-panel-lead">Quick fixes for spelling, grammar, and word choice.</p>
-            ${renderCorrections(evalData.corrections)}
-          </section>`
-        : "";
-
     const composition = evalData.optimized_composition || evalData.rewritten_essay || "";
+    const taskLead =
+      (taskType || "task2") === "task1"
+        ? "Detailed feedback for each IELTS marking criterion, with sentence-level notes on Task Achievement."
+        : "Detailed feedback for each criterion, with paragraph-level notes on Task Response.";
     const subtype = evalData.question_subtype
       ? `<span class="eval-meta-tag">${esc(evalData.question_subtype)}</span>`
       : "";
@@ -199,11 +212,9 @@
           ${renderCriterionScoresGrid(scores, taskType)}
         </header>
 
-        ${topCorrections}
-
         <section class="eval-panel">
           <h4 class="eval-panel-title">Comments</h4>
-          <p class="eval-panel-lead">Detailed feedback for each IELTS marking criterion.</p>
+          <p class="eval-panel-lead">${taskLead}</p>
           <div class="eval-criteria-stack">${sections}</div>
         </section>
 
